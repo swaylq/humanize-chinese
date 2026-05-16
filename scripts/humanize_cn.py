@@ -1135,6 +1135,13 @@ _CILIN_BLACKLIST = {
     # object is data/numbers ("辨析数据" — long_blog hero seed=42). 剖析/
     # 解析 stay as alts so 分析 still varies; only the misfit gets blocked.
     '辨析',
+    # N-1a round 2 audit 2026-05-16 (heartbeat 8): 反应 (alt of 影响, cilin
+    # has the pair bidirectional) is a semantic mismatch: 影响=effect/cause,
+    # 反应=response/reaction. long_blog hero seed=42 had "直接反应了他们的
+    # 使用体验" (source "直接影响了他们的使用体验"), which reads off and is
+    # easily confused with 反映 (reflect). Block this single alt; 影响 source
+    # had no other cilin alt so 影响 stays in-place when source.
+    '反应',
 }
 
 

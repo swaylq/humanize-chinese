@@ -33,3 +33,15 @@
 ## 下一 cycle 建议
 
 按上面 #1 → #7 顺序排，每 cycle 修 1-2 个。修法多为 _CILIN_BLACKLIST 增条或 contextual guard，单 commit 风险低。
+
+## Round 2 audit (heartbeat 8, post 9 commits)
+
+跑全 hero 第二轮，找新候选：
+
+1. ~~**`反应了使用体验`** (sample_long_blog.txt, "这直接反应了他们的使用体验")~~ **fixed 2026-05-16 cycle (heartbeat 8) — 加 '反应' to _CILIN_BLACKLIST。CiLin 双向 group 把 影响↔反应 列为同义，但 影响=effect/cause 与 反应=response/reaction 语义反向，且易混淆于 反映(reflect)。post-fix 输出 "这直接影响了他们的使用体验" 恢复原意。**
+2. **`在过去的一年里。估摸着，`** (sample_long_blog.txt) — 句号 split 错误。原 "在过去的一年里，我经历了..." 被某 transform 切成两句 + 中间塞 "估摸着，" filler。来源不明，留下个 cycle 摸。
+3. **`案例：在一个项目中。我们需要开发...`** (sample_long_blog.txt) — 同类句号 split。原 "案例：在一个项目中，我们需要..."。可能 split_long_sentences 在 "项目中" 错误切句。
+4. **`一类核心竞争力`** (sample_social.txt) — heartbeat 5 修 comma 后 "本身就是一类" 仍然，"一类" 替换 "一种" 语义偏移，留作低优先级。来源未追，可能 replace_phrases / cilin / WORD_SYNONYMS。
+5. **`使用价值 / 应用价值`** (sample_general.txt) — "应用价值" 替成 "使用价值"，意思偏 utilitarian，原 academic register 偏 conceptual。低优先级。
+
+Round 2 主修 #1（最严重 typo-class），#2-#3 留下次（结构性 split 问题，需要 bisect 找 transform）。
