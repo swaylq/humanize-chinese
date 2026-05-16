@@ -1219,6 +1219,18 @@ _CILIN_SOURCE_BLACKLIST = {
     # general audit: 能够 cilin alts (亦可/可知) are both 文言. Source blacklist
     # since neither alt ever fits modern modal "能够 X" slot.
     '能够',
+    # N-1a R3 2026-05-17: 潜在 cilin alts (地下/心腹/暗昧/暧昧/机密/机要)
+    # all collapse 潜在 (latent/potential) into the secret/hidden family.
+    # long_blog seed=42 produced "发现暧昧的问题" where source was
+    # "发现潜在的问题" — meaning shifted from latent to ambiguous. Every
+    # cilin alt is a misfire; block source.
+    '潜在',
+    # N-1a R3 2026-05-17: 不止 cilin alts (不了/不仅/不仅仅/不停). The first
+    # and last produce broken Chinese ("不止" → "不停" turned "这一年不止是
+    # 角色的转变" into "这一年不停是角色的转变" via the patterns_cn.json
+    # 不仅仅是→不止是 path). Block source so patterns_cn.json's swap stays
+    # in-place without further cilin layering.
+    '不止',
 }
 
 

@@ -45,3 +45,15 @@
 5. **`使用价值 / 应用价值`** (sample_general.txt) — "应用价值" 替成 "使用价值"，意思偏 utilitarian，原 academic register 偏 conceptual。低优先级。
 
 Round 2 主修 #1（最严重 typo-class），#2-#3 留下次（结构性 split 问题，需要 bisect 找 transform）。
+
+## Round 3 audit (heartbeat 11, 2026-05-17)
+
+post 12 commits 跑 long_blog seed=42 跳现 2 新严重 bug：
+
+1. ~~**`并发现暧昧的问题`** (sample_long_blog.txt)~~ **fixed 2026-05-17 cycle (heartbeat 11) — _CILIN_SOURCE_BLACKLIST 加 '潜在'。cilin 把 潜在 (latent/potential) 误归 hidden/secret 族 (地下/心腹/暗昧/暧昧/机密/机要)，所有 alts 都改义。Block source。post-fix 恢复 "发现潜在的问题"。**
+2. ~~**`这一年不停是职业角色的转变`** (sample_long_blog.txt)~~ **fixed 同一 commit — _CILIN_SOURCE_BLACKLIST 加 '不止'。patterns_cn.json "不仅仅是" → "不止是" + cilin "不止" → "不停" 二段叠加产 "不停是" 病句。Block 不止 source 让 patterns 替换后停在 "不止是"。**
+
+Hero 验证：long_blog 38→45（窄过 floor 46，margin 1）；其他 hero 持平/微改善。HC3 N=30 持平 86.7%/50.9/0 grammar。
+
+Round 3 剩 candidates（低优先）：
+3. `处理这一难题` (sample_long_blog) — "处理" 替 "应对/面对/面临"，semantic-OK but register-shift；保留
