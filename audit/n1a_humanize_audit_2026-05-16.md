@@ -27,10 +27,7 @@
 
 4. ~~**`保有广阔的发展前景`** (sample_academic.txt, "深入研究该领域，保有广阔的发展前景")~~ **fixed 2026-05-16 cycle (heartbeat) — 加 '保有' to _CILIN_BLACKLIST，输出变 "具备广阔的发展前景"**
 
-5. **`融入大数据剖析`** (sample_academic.txt / general.txt)
-   - "通过/借助大数据分析" → "融入大数据剖析"
-   - 两层问题：(a) "通过" → "融入" 在 instrument-context 不合（融入 = 加入/become part of），(b) "分析" → "剖析" 与 "大数据" 搭配略硬
-   - 修法：'融入' 限定 collocation（不能修饰 instrument），或 "通过" cilin alt blacklist
+5. ~~**`融入大数据剖析`** (sample_academic.txt / general.txt)~~ **fixed 2026-05-16 cycle (heartbeat 2) — patterns_cn.json "深度融合" alts ["结合", "融入"] → ["结合", "整合"]，4 hero 全部从 "融入X" → "整合X"。剖析问题（#6）单独处理。**
 
 6. **`给出 X 体验/解决方案`** (sample_general.txt, social.txt)
    - "提供" → "给出"，但 "给出体验" / "给出方案" 不像中文自然搭配
