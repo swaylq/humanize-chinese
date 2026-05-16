@@ -3145,7 +3145,7 @@ def diversify_vocabulary(text):
     diversity_map = {
         '进行': ['做', '开展', '实施', '推进'],
         '实现': ['达到', '做到', '完成'],
-        '提供': ['给出', '带来'],  # Cycle 63: dropped 拿出 (see WORD_SYNONYMS comment)
+        '提供': ['给予', '带来'],  # Cycle 63 dropped 拿出; cycle 13 (2026-05-17) dropped 给出 — "给出菜肴/体验/支撑" off-collocation, mirror WORD_SYNONYMS fix
         '具有': ['有', '拥有', '带有'],
         # cycle 252: dropped '深入' — adjacency cascade "进一步深入" → "深入深入"
         # leaves no alt; effectively skip 进一步 in diversify_vocabulary path.

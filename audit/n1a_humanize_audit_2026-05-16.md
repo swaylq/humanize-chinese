@@ -46,6 +46,15 @@
 
 Round 2 主修 #1（最严重 typo-class），#2-#3 留下次（结构性 split 问题，需要 bisect 找 transform）。
 
+## Round 4 audit (heartbeat 13, 2026-05-17) — HC3 sample sweep
+
+跑 HC3 N=20 中等长度 samples（100-800 字 chatgpt_answers）找 broken candidates 超出 hero 范围。
+
+1. ~~**`给予 X 菜肴 / 体验 / 支撑`** (HC3 sample 7 restaurant) — diversify_vocabulary['提供'] 还残留 '给出' alt（cycle 7 只修了 WORD_SYNONYMS path，这是第二 copy）。~~ **fixed 2026-05-17 cycle (heartbeat 13) — diversify_vocabulary['提供'] 从 ['给出', '带来'] 改 ['给予', '带来']，对齐 WORD_SYNONYMS 修法。post-fix 验证 sample 7 "给予 X 美食" 取代 "给出 X 美食"。**
+2. **`方向促进框架 / 方向催动框架 / 方向支持架构`** (HC3 sample 2 汽车) — "方向辅助系统" 被多重 substitution 改成 awkward 复合（辅助→促进/催动/帮助/支持，系统→框架/架构）。"汽车方向辅助系统" 是 fixed technical term，alts 都不合。修法：限制 '辅助' 和 '系统' 在 fixed-term 上下文（汽车/航空/电子）不替换。留下次 cycle。
+3. **`方向帮助系统`** (HC3 sample 2 汽车) — 同 #2 同 substitution family。
+4. **`极有可能 / 八成 / 多半 / 说不定`** (HC3 多 sample) — modal hedge 替换密集（"可能" → 多种 hedge），偶尔产 register slippage。低优先级。
+
 ## Round 3 audit (heartbeat 11, 2026-05-17)
 
 post 12 commits 跑 long_blog seed=42 跳现 2 新严重 bug：
