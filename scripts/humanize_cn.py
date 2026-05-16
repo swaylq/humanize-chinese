@@ -1125,6 +1125,11 @@ _CILIN_BLACKLIST = {
     # 推进、全球化深入推进的一时" (lf:80 audit, source had 时代) is broken;
     # should stay "时代". Multi-source mistake in cilin grouping.
     '一时',
+    # N-1a audit 2026-05-16: 保有 (alt of 具有/拥有/享有) is fine for tangible
+    # rights/territory ("保有股权/领土") but reads off when modifying abstract
+    # outlook nouns. "保有广阔的发展前景" (academic hero seed=42) wants
+    # 具备/具有, not 保有.
+    '保有',
 }
 
 

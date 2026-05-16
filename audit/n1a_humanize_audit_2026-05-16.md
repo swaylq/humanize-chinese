@@ -25,9 +25,7 @@
    - WORD_SYNONYMS['分析'] cilin alts 含 '辨析'（"分析"→cilin 给的 alts），但 "辨析数据" 在中文搭配上 awkward（"辨析" 适合论点/概念，"分析" 才适合数据）
    - 修法：'辨析' 入 _CILIN_BLACKLIST 或 contextual guard（"辨析" + "数据/数字" 视为 broken）
 
-4. **`保有广阔的发展前景`** (sample_academic.txt, "深入研究该领域，保有广阔的发展前景")
-   - WORD_SYNONYMS['具有/拥有'] → '保有'，但 "保有" 在 "保有 X 前景" awkward (保有 适合具体物体 e.g. 保有领土/股权)
-   - 修法：'保有' 加 _CILIN_BLACKLIST 或限定 collocation
+4. ~~**`保有广阔的发展前景`** (sample_academic.txt, "深入研究该领域，保有广阔的发展前景")~~ **fixed 2026-05-16 cycle (heartbeat) — 加 '保有' to _CILIN_BLACKLIST，输出变 "具备广阔的发展前景"**
 
 5. **`融入大数据剖析`** (sample_academic.txt / general.txt)
    - "通过/借助大数据分析" → "融入大数据剖析"
