@@ -1130,6 +1130,11 @@ _CILIN_BLACKLIST = {
     # outlook nouns. "保有广阔的发展前景" (academic hero seed=42) wants
     # 具备/具有, not 保有.
     '保有',
+    # N-1a audit 2026-05-16 (heartbeat 3): 辨析 (alt of 分析) means
+    # "distinguish & analyze" — fits "辨析论点/概念" but reads off when the
+    # object is data/numbers ("辨析数据" — long_blog hero seed=42). 剖析/
+    # 解析 stay as alts so 分析 still varies; only the misfit gets blocked.
+    '辨析',
 }
 
 

@@ -20,10 +20,7 @@
    - WORD_SYNONYMS['分析'] = ['剖析', '解读']，所以是 "数据分析" → "数据 + ? + 解读" 多了 "相关"
    - 修法：找谁注入 "相关" 前缀 + 看 phrase pattern
 
-3. **`辨析数据的能力`** (sample_long_blog.txt, "产品经理一定要具备辨析数据的能力")
-   - 原文 "分析数据"
-   - WORD_SYNONYMS['分析'] cilin alts 含 '辨析'（"分析"→cilin 给的 alts），但 "辨析数据" 在中文搭配上 awkward（"辨析" 适合论点/概念，"分析" 才适合数据）
-   - 修法：'辨析' 入 _CILIN_BLACKLIST 或 contextual guard（"辨析" + "数据/数字" 视为 broken）
+3. ~~**`辨析数据的能力`** (sample_long_blog.txt, "产品经理一定要具备辨析数据的能力")~~ **fixed 2026-05-16 cycle (heartbeat 3) — 加 '辨析' to _CILIN_BLACKLIST。当前 fallback 选 '浅析'：long_blog "具备浅析数据的能力"。'浅析' 仍偏弱，留新 candidate #3b 处理（或验 '浅析' / '剖析' / '解析' 哪个 fluency 最好作 default）**
 
 4. ~~**`保有广阔的发展前景`** (sample_academic.txt, "深入研究该领域，保有广阔的发展前景")~~ **fixed 2026-05-16 cycle (heartbeat) — 加 '保有' to _CILIN_BLACKLIST，输出变 "具备广阔的发展前景"**
 
