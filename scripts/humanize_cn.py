@@ -1142,6 +1142,11 @@ _CILIN_BLACKLIST = {
     # easily confused with 反映 (reflect). Block this single alt; 影响 source
     # had no other cilin alt so 影响 stays in-place when source.
     '反应',
+    # N-1a R3 cycle 12 2026-05-17: 不停 (alt of 不止) breaks "X 不止是 Y"
+    # compound — "这一年不止是角色的转变" became "这一年不停是角色的转变".
+    # The other alts of 不止 (不仅/不仅仅) are fine, so just block 不停 alt
+    # instead of source-blocking 不止. Lets cilin still vary 不止 → 不仅(仅).
+    '不停',
 }
 
 
@@ -1225,12 +1230,6 @@ _CILIN_SOURCE_BLACKLIST = {
     # "发现潜在的问题" — meaning shifted from latent to ambiguous. Every
     # cilin alt is a misfire; block source.
     '潜在',
-    # N-1a R3 2026-05-17: 不止 cilin alts (不了/不仅/不仅仅/不停). The first
-    # and last produce broken Chinese ("不止" → "不停" turned "这一年不止是
-    # 角色的转变" into "这一年不停是角色的转变" via the patterns_cn.json
-    # 不仅仅是→不止是 path). Block source so patterns_cn.json's swap stays
-    # in-place without further cilin layering.
-    '不止',
 }
 
 
