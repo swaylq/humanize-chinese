@@ -239,7 +239,7 @@ WORD_SYNONYMS = {
     # cycle 214: dropped 呈上 — overly formal "respectfully present",
     # in tech/business context "呈上聊天功能" / "呈上食物" reads off.
     # Already in _CILIN_BLACKLIST but WORD_SYNONYMS path bypassed.
-    '提供': ['给出', '给予'],
+    '提供': ['给予'],  # 2026-05-16 drop 给出 — "给出体验/解决方案/支撑" reads off (给出 fits 答案/建议, not abstract objects)
     '分析': ['解读', '解析'],  # cycle 205 drop 审视/heartbeat drop 拆解; 2026-05-16 drop 剖析 (off in 竞争/大数据/市场分析 collocations), add 解析 (technical-natural)
     '促进': ['推动', '助推', '带动', '催动'],
     '利用': ['借用', '运用', '动用', '凭借'],

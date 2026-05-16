@@ -20,9 +20,7 @@
 
 5. ~~**`融入大数据剖析`** (sample_academic.txt / general.txt)~~ **fixed 2026-05-16 cycle (heartbeat 2) — patterns_cn.json "深度融合" alts ["结合", "融入"] → ["结合", "整合"]，4 hero 全部从 "融入X" → "整合X"。剖析问题（#6）单独处理。**
 
-6. **`给出 X 体验/解决方案`** (sample_general.txt, social.txt)
-   - "提供" → "给出"，但 "给出体验" / "给出方案" 不像中文自然搭配
-   - 修法：'给出' 限定 collocation（适合 "给出答案/建议"，不适合 "给出体验"）
+6. ~~**`给出 X 体验/解决方案`** (sample_general.txt, social.txt)~~ **fixed 2026-05-16 cycle (heartbeat 7) — WORD_SYNONYMS['提供'] 从 ['给出', '给予'] 改 ['给予']。'给出' 适合具象答案/建议，不适合 体验/方案/支撑 这类抽象/复合对象。'给予' 更 versatile：4 hero 全部 "给出X" → "给予X" 读自然。**
 
 7. ~~**`竞争剖析`** (sample_long_blog.txt, "市场定位、竞争剖析等")~~ **fixed 2026-05-16 cycle (heartbeat 6) — WORD_SYNONYMS['分析'] 从 ['剖析', '解读'] 改为 ['解读', '解析']。'剖析' 偏深入展开不适合 "竞争/大数据/市场分析" 这类抽象 collocations。同 swap 一并清掉 entry #3 fallback '浅析' 问题：post-fix 大数据剖析→大数据解读 / 竞争剖析→竞争解读 / 浅析数据→解读数据 / 数据解读反映→数据解析反映。**
 
