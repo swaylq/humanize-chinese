@@ -15,10 +15,7 @@
    - 来源：可能是 inject_noise 误插逗号 + WORD_SYNONYMS 把 "一种" → "一类"
    - 修法：搜 humanize_cn 哪里产 "本身就，" 或 "一类核心"
 
-2. **`数据相关解读揭示`** (sample_long_blog.txt, "数据相关解读揭示，改进后的版本显著提升了...")
-   - 原文 "数据分析揭示"
-   - WORD_SYNONYMS['分析'] = ['剖析', '解读']，所以是 "数据分析" → "数据 + ? + 解读" 多了 "相关"
-   - 修法：找谁注入 "相关" 前缀 + 看 phrase pattern
+2. ~~**`数据相关解读揭示`** (sample_long_blog.txt, "数据相关解读揭示，改进后的版本显著提升了...")~~ **fixed 2026-05-16 cycle (heartbeat 4) — 改 patterns_cn.json 的 "分析显示" alts: 删 "相关分析揭示" 改为 "分析揭示"。原 source 是 "数据分析显示" → "数据相关分析揭示" (因 prefix "数据" 留作 leftover)。post-fix long_blog "数据解读反映，..." 读起自然。**
 
 3. ~~**`辨析数据的能力`** (sample_long_blog.txt, "产品经理一定要具备辨析数据的能力")~~ **fixed 2026-05-16 cycle (heartbeat 3) — 加 '辨析' to _CILIN_BLACKLIST。当前 fallback 选 '浅析'：long_blog "具备浅析数据的能力"。'浅析' 仍偏弱，留新 candidate #3b 处理（或验 '浅析' / '剖析' / '解析' 哪个 fluency 最好作 default）**
 
