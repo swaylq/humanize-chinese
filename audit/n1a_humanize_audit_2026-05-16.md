@@ -10,10 +10,7 @@
 
 按严重度排序：
 
-1. **`本身就，是一类核心竞争力`** (sample_social.txt, "实话说，这种取舍能力本身就，是一类核心竞争力")
-   - "本身就，" 多余逗号 + "一类" 不合中文（应 "是一种" / "是一项"）
-   - 来源：可能是 inject_noise 误插逗号 + WORD_SYNONYMS 把 "一种" → "一类"
-   - 修法：搜 humanize_cn 哪里产 "本身就，" 或 "一类核心"
+1. ~~**`本身就，是一类核心竞争力`** (sample_social.txt, "实话说，这种取舍能力本身就，是一类核心竞争力")~~ **fixed 2026-05-16 cycle (heartbeat 5) — restructure_cn.py:946 boost_comma_density 加 '就' 到 prefix-tail2 skip set。"X 就是 Y" 是中文 compound copula，"就" 后插逗号读破句。post-fix: "本身就是一类核心竞争力"。"一类" 替换 "一种" 略宽但留作可接受语义偏移。**
 
 2. ~~**`数据相关解读揭示`** (sample_long_blog.txt, "数据相关解读揭示，改进后的版本显著提升了...")~~ **fixed 2026-05-16 cycle (heartbeat 4) — 改 patterns_cn.json 的 "分析显示" alts: 删 "相关分析揭示" 改为 "分析揭示"。原 source 是 "数据分析显示" → "数据相关分析揭示" (因 prefix "数据" 留作 leftover)。post-fix long_blog "数据解读反映，..." 读起自然。**
 

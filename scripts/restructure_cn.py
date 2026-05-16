@@ -946,9 +946,11 @@ def boost_comma_density(text, target=4.7):
             # Skip if prefix ends in a negation/modal that binds tightly to
             # the marker verb. Covers 不X (不再/不会/不能), 没X, 未X, 别X,
             # 仍X, 还X, 再X, 才X, 都X etc. Check last two chars so 不再需要
-            # (where char before 需要 is 再) is caught.
+            # (where char before 需要 is 再) is caught. 就 added 2026-05-16:
+            # "本身就是一种Y" should not split into "本身就，是一种Y" —
+            # "就是" is a compound copula in Chinese.
             tail2 = prefix[-2:] if len(prefix) >= 2 else prefix
-            if any(c in '不未没别仍还再才都也' for c in tail2):
+            if any(c in '不未没别仍还再才都也就' for c in tail2):
                 continue
             # Don't insert at very end either (need some stuff after)
             suffix_cn = sum(1 for c in sent[idx:] if '\u4e00' <= c <= '\u9fff')
