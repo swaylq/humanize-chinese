@@ -2184,6 +2184,14 @@ def boost_para_sent_len_cv(text, target_cv=0.40):
                            for p in paragraphs)
 
 
+# 在 X 里/中/期间/... — temporal/spatial adverbial that needs a main clause
+# downstream. randomize_sentence_lengths uses this to skip Strategy B
+# truncation at the comma after such a phrase.
+_ZAI_LOCATIVE_RE = re.compile(
+    r'在[^，。！？\n]{1,20}(?:里面|期间|前后|之前|之后|之间|之上|之下|之外|里|中)$'
+)
+
+
 def randomize_sentence_lengths(text, aggressive=False, seed=None):
     """
     策略2: 刻意制造不均匀的句子长度分布。
@@ -2301,6 +2309,18 @@ def randomize_sentence_lengths(text, aggressive=False, seed=None):
                     '之中', '的背景下',
                 )
                 if first_part.endswith(_context_suffixes):
+                    result.append(s + p)
+                    i += 1
+                    continue
+                # N-1a R2 2026-05-16: temporal/spatial adverbials with 在 + 2-15
+                # chars + a locative tail (里/中/里面/期间/前后/之前/之后/之间/
+                # 之上/之下/之外). Splitting at the comma after such a phrase
+                # strands the main clause:
+                #   "在过去的一年里。我经历了..." (long_blog seed=43)
+                #   "案例：在一个项目中。我们需要..." (long_blog seed=45)
+                # Use regex anchored at end so "案例：在 X 中" matches too. "在"
+                # alone is too broad — narrowed by the locative-suffix anchor.
+                if _ZAI_LOCATIVE_RE.search(first_part):
                     result.append(s + p)
                     i += 1
                     continue
