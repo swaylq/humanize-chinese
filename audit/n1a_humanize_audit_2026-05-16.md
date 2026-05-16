@@ -41,7 +41,7 @@
 1. ~~**`反应了使用体验`** (sample_long_blog.txt, "这直接反应了他们的使用体验")~~ **fixed 2026-05-16 cycle (heartbeat 8) — 加 '反应' to _CILIN_BLACKLIST。CiLin 双向 group 把 影响↔反应 列为同义，但 影响=effect/cause 与 反应=response/reaction 语义反向，且易混淆于 反映(reflect)。post-fix 输出 "这直接影响了他们的使用体验" 恢复原意。**
 2. ~~**`在过去的一年里。估摸着，`** (sample_long_blog.txt)~~ **fixed 2026-05-16 cycle (heartbeat 9) — bisect 定位 randomize_sentence_lengths Strategy B truncation at first comma。原 "在过去的一年里，我经历了..." 在 comma 切，产 "在过去的一年里。" + 后续 inject_noise 塞 "估摸着，" filler。新增 _ZAI_LOCATIVE_RE guard：在 + {1,20}字 + 里/中/里面/期间/前后/之前/之后/之间/之上/之下/之外 不允许 truncate。**
 3. ~~**`案例：在一个项目中。我们需要开发...`** (sample_long_blog.txt)~~ **fixed 同一 commit — _ZAI_LOCATIVE_RE 同时 cover "案例：在一个项目中" (在 不在 first_part 开头时 regex 也 catch)。原 "案例：在一个项目中，我们需要..." 保留 comma。**
-4. **`一类核心竞争力`** (sample_social.txt) — heartbeat 5 修 comma 后 "本身就是一类" 仍然，"一类" 替换 "一种" 语义偏移，留作低优先级。来源未追，可能 replace_phrases / cilin / WORD_SYNONYMS。
+4. ~~**`一类核心竞争力`** (sample_social.txt) — heartbeat 5 修 comma 后 "本身就是一类" 仍然，"一类" 替换 "一种" 语义偏移~~ **fixed 2026-05-16 cycle (heartbeat 10) — patterns_cn.json 删 "是一种" → ["是一类"] 单 alt 替换（top-level + academic_patterns 各一处）。"一种" (kind of) 与 "一类" (category of) 语义不同；"是一种" 留作 source 不替换比硬变 "是一类" 通顺。post-fix social "本身就是一种核心竞争力"。**
 5. **`使用价值 / 应用价值`** (sample_general.txt) — "应用价值" 替成 "使用价值"，意思偏 utilitarian，原 academic register 偏 conceptual。低优先级。
 
 Round 2 主修 #1（最严重 typo-class），#2-#3 留下次（结构性 split 问题，需要 bisect 找 transform）。
