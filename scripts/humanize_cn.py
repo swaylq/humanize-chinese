@@ -869,6 +869,7 @@ _CILIN_BLACKLIST = {
     # cycle 230 long_blog audit additions:
     '上心',  # 专注 alt — verb "take to heart"; "上心于X" 不通 (上心 doesn't take 于)
     '寻常',  # 通常 alt — literary "ordinary"; "数据寻常用于" reads off-register
+    '家常',  # 通常 alt — narrow ("家常便饭/家常话"); "数据家常用于" 像 1 字 typo
     # cycle 231 general/workplace audit additions:
     '推向',  # 推动 alt — needs directional object; "推向教育的大趋势" 不通
              # (推向 expects target/level: "推向更高水平"; not abstract "X的大趋势")
