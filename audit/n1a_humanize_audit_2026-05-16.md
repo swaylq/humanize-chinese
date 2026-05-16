@@ -14,7 +14,7 @@
 
 2. ~~**`数据相关解读揭示`** (sample_long_blog.txt, "数据相关解读揭示，改进后的版本显著提升了...")~~ **fixed 2026-05-16 cycle (heartbeat 4) — 改 patterns_cn.json 的 "分析显示" alts: 删 "相关分析揭示" 改为 "分析揭示"。原 source 是 "数据分析显示" → "数据相关分析揭示" (因 prefix "数据" 留作 leftover)。post-fix long_blog "数据解读反映，..." 读起自然。**
 
-3. ~~**`辨析数据的能力`** (sample_long_blog.txt, "产品经理一定要具备辨析数据的能力")~~ **fixed 2026-05-16 cycle (heartbeat 3) — 加 '辨析' to _CILIN_BLACKLIST。当前 fallback 选 '浅析'：long_blog "具备浅析数据的能力"。'浅析' 仍偏弱，留新 candidate #3b 处理（或验 '浅析' / '剖析' / '解析' 哪个 fluency 最好作 default）**
+3. ~~**`辨析数据的能力`** (sample_long_blog.txt, "产品经理一定要具备辨析数据的能力")~~ **fixed 2026-05-16 cycle (heartbeat 3) — 加 '辨析' to _CILIN_BLACKLIST。fallback '浅析' 在 heartbeat 6 通过 WORD_SYNONYMS['分析'] 改 ['解读', '解析'] 一并解决。post-fix 输出 "具备解读数据的能力" 自然。**
 
 4. ~~**`保有广阔的发展前景`** (sample_academic.txt, "深入研究该领域，保有广阔的发展前景")~~ **fixed 2026-05-16 cycle (heartbeat) — 加 '保有' to _CILIN_BLACKLIST，输出变 "具备广阔的发展前景"**
 
@@ -24,10 +24,7 @@
    - "提供" → "给出"，但 "给出体验" / "给出方案" 不像中文自然搭配
    - 修法：'给出' 限定 collocation（适合 "给出答案/建议"，不适合 "给出体验"）
 
-7. **`竞争剖析`** (sample_long_blog.txt, "市场定位、竞争剖析等")
-   - "竞争分析" → "竞争剖析"
-   - 中文 "剖析" 偏深入展开，"竞争" 抽象主题，搭配略硬
-   - 修法：'剖析' contextual guard（与 "市场/竞争/数据" 抽象主语搭配视为 broken），或单独看 WORD_SYNONYMS['分析'] 中 '剖析' 的使用频率
+7. ~~**`竞争剖析`** (sample_long_blog.txt, "市场定位、竞争剖析等")~~ **fixed 2026-05-16 cycle (heartbeat 6) — WORD_SYNONYMS['分析'] 从 ['剖析', '解读'] 改为 ['解读', '解析']。'剖析' 偏深入展开不适合 "竞争/大数据/市场分析" 这类抽象 collocations。同 swap 一并清掉 entry #3 fallback '浅析' 问题：post-fix 大数据剖析→大数据解读 / 竞争剖析→竞争解读 / 浅析数据→解读数据 / 数据解读反映→数据解析反映。**
 
 ## 验证
 
