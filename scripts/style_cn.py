@@ -631,7 +631,7 @@ TRANSFORM_MAP = {
 _STYLE_TO_SCENE = {
     'casual':      'social',
     'zhihu':       'social',
-    'xiaohongshu': 'social',
+    'xiaohongshu': 'general',
     'wechat':      'social',
     'academic':    'formal',
     'literary':    'general',
