@@ -1029,7 +1029,10 @@ def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, se
     if (n_md_headers >= 2 or n_academic >= 2) and scene != 'social':
         scene = 'formal'
     if target_short_frac is None:
-        target_short_frac = 0.22 if scene == 'academic' else 0.15
+        # Per-paragraph target lets global short_frac accumulate above the
+        # intended cap when many low-local-short paragraphs each get one
+        # insertion. Lower per-para target keeps global closer to true cap.
+        target_short_frac = 0.22 if scene == 'academic' else 0.10
     paragraphs = split_paragraphs(text)
     # Track reactions already inserted in this text. Without dedupe a sample
     # with many paragraphs can land "事出有因" 5 times (sample 16 audit) when
