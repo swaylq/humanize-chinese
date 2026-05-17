@@ -1160,6 +1160,9 @@ _CILIN_BLACKLIST = {
     # for retention/maintain. "容量保持率 → 容量涵养率" broken in technical text.
     # Source words still have other alts (保全/保障/护持/维持/维系/保持).
     '涵养',
+    # 冤家 (alt of 朋友): means "fated enemy/lover" — colloquial-romantic register
+    # flips friendship sense. "朋友们" → "冤家们" reads as off-color slang.
+    '冤家',
 }
 
 
@@ -1263,6 +1266,11 @@ _CILIN_SOURCE_BLACKLIST = {
     # specific compounds (照相 = photo session, 摄影 = photography as noun).
     # "下拍摄花蕊" → "下摄影花蕊" grammatically off. Block source.
     '拍摄',
+    # 忽略 cilin alts (不在意/不注意/不经意/大意/失慎/失神) — 失慎 = "lose
+    # caution", semantic shift for "忽略了动作的质量" → "失慎了动作的质量"
+    # (broken — losing-caution-on quality). Other alts noun/adj-form mismatch.
+    # Block source.
+    '忽略',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
