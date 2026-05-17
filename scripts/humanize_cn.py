@@ -1156,6 +1156,10 @@ _CILIN_BLACKLIST = {
     # 耳生 (alt of 陌生): "ear-strange" off-register for "陌生感" (feeling stranger).
     # Other 陌生 alts (生分/生疏/眼生/面生) work in narrative; block this one alt.
     '耳生',
+    # 涵养 (alt of 保持/维持/护持/保全): means "nurturing/cultivation", wrong
+    # for retention/maintain. "容量保持率 → 容量涵养率" broken in technical text.
+    # Source words still have other alts (保全/保障/护持/维持/维系/保持).
+    '涵养',
 }
 
 
@@ -1244,6 +1248,21 @@ _CILIN_SOURCE_BLACKLIST = {
     # 记得 cilin only alt is 记忆 (memory, noun). "老王总是记得 → 老王总是记忆"
     # flips verb→noun part-of-speech. Block source.
     '记得',
+    # 识别 cilin alts (分辨/判别/可辨/甄别/识假/辨别) — 识假 = "identify fakes"
+    # specific to anti-counterfeit, wrong for general "湿手识别"/"语音识别"
+    # (yields "湿手识假" = wet-hand identify-fake, broken). Block source.
+    '识别',
+    # 温度 cilin only alt is 热度 — different sense: 温度 = warmth/temperature,
+    # 热度 = heat/popularity. "有温度的智能" → "有热度的智能" loses warmth metaphor.
+    # Block source.
+    '温度',
+    # 速度 cilin alts (快慢/进度) — 快慢 is noun "fast/slow pair", wrong slot for
+    # measured speed. "解锁速度快至..." → "解锁快慢快至..." (broken). Block source.
+    '速度',
+    # 拍摄 cilin alts (录像/拍照/摄像/摄录/摄影/照相) — most are noun forms or
+    # specific compounds (照相 = photo session, 摄影 = photography as noun).
+    # "下拍摄花蕊" → "下摄影花蕊" grammatically off. Block source.
+    '拍摄',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
