@@ -3524,7 +3524,7 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     # breaking the cross-paragraph trigram repetition. n=20 sweep at
     # max_replacements=4: fired 20/20, LR delta avg -1.65, zero
     # regressions.
-    text = reduce_cross_para_3gram_repeat(text, max_replacements=4,
+    text = reduce_cross_para_3gram_repeat(text, max_replacements=8,
                                           scene=scene, style=style,
                                           seed=seed)
 
