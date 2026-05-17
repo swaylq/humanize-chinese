@@ -1205,6 +1205,11 @@ _CILIN_SOURCE_BLACKLIST = {
     # physical greenhouse types; "温室气体" is fixed scientific term, ANY
     # substitution breaks it ("花房气体" → "flower-house gas" 错). Block source.
     '温室',
+    # 围绕 cilin alts (回环/拱卫/拱抱/环抱/盘绕/环绕) are physical-encirclement
+    # words; "围绕主题/围绕重点" uses 围绕 abstractly as "centered on". 回环
+    # ("loop/cycle") flips meaning entirely ("本次写作重点回环主角" reads broken).
+    # Block source — no alt fits the abstract topical usage.
+    '围绕',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
