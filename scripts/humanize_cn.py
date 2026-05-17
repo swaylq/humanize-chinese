@@ -1163,6 +1163,10 @@ _CILIN_BLACKLIST = {
     # 冤家 (alt of 朋友): means "fated enemy/lover" — colloquial-romantic register
     # flips friendship sense. "朋友们" → "冤家们" reads as off-color slang.
     '冤家',
+    # 语气 (alt of 口气/话音/口风): breaks set idiom 叹了口气 (sigh) → 叹了语气
+    # (sigh-tone — nonsense). 语气 is "tone of speech" while 口气 there is
+    # "breath/exhalation". Sources still have 口吻/话音/口风 alternatives.
+    '语气',
 }
 
 
@@ -1271,6 +1275,15 @@ _CILIN_SOURCE_BLACKLIST = {
     # (broken — losing-caution-on quality). Other alts noun/adj-form mismatch.
     # Block source.
     '忽略',
+    # 具体 cilin alts (具象/切实/实际/求实/现实/现实性) — 具象 = "concrete
+    # image / visualize", different concept from 具体 = "specific/detailed".
+    # "具体发放" → "具象发放" (broken — visualize-distribute ≠ specifically-distribute).
+    # Other alts also semantic shifts in most contexts. Block source.
+    '具体',
+    # 压低 cilin alts (低于/低平/最低) all are degree/comparison terms, not the
+    # verb "lower/press-down" of 压低. "压低声音" → "低于声音" (broken — less-than
+    # sound ≠ lower the voice). Block source.
+    '压低',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
