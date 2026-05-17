@@ -399,7 +399,10 @@ WORD_SYNONYMS = {
     # cycle 214: dropped 层次 — organizational/hierarchical sense, not
     # numerical. "雌激素水平 → 雌激素层次" semantically broken (hormone
     # has level/水平/水准, not hierarchy/层次).
-    '水平': ['档次', '高度', '水准'],
+    # 高度 dropped: "水平扩展" → "高度扩展" flips horizontal/vertical semantic
+    # in scaling/spatial contexts ("水平方向", "水平线" similar). 档次 + 水准
+    # cover the level/grade sense well enough.
+    '水平': ['档次', '水准'],
     '范围': ['领域', '地带', '区间', '覆盖面'],
     '趋势': ['走向', '苗头', '势头', '倾向'],
     # cycle 208: dropped '实力' — "沟通能力" → "沟通实力" wrong (cycle 205
@@ -418,7 +421,10 @@ WORD_SYNONYMS = {
     # produces AI-buzzword uses ('AI生态' / '教育生态') that the detector
     # immediately flags. Added '局面' / '情境' as clean alts in the same
     # semantic neighborhood without doubled-char boundary issues.
-    '环境': ['氛围', '背景', '局面', '情境'],
+    # 情境 dropped: "环境变量" → "情境变量" semantic shift in technical contexts
+    # (env variables ≠ scenario variables). 氛围/背景/局面 cover the contextual
+    # /atmospheric sense.
+    '环境': ['氛围', '背景', '局面'],
     '系统': ['体系', '架构', '框架'],
     '策略': ['路线', '方案', '对策', '路子'],
 }
@@ -1215,6 +1221,11 @@ _CILIN_SOURCE_BLACKLIST = {
     # = "decide/determine" produces "噪点决定" (broken: noise determines what?).
     # Block source.
     '控制',
+    # 分层 cilin alts (分支/分段/岔开/拨出/支行/汊港) — all are transport /
+    # branching terms; "分层架构" ("layered architecture") needs hierarchical
+    # vertical sense. 汊港 = "tributary harbor" produces wild broken text
+    # ("沿用清晰的汊港架构"). Block source.
+    '分层',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
