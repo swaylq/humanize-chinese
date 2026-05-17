@@ -1153,6 +1153,9 @@ _CILIN_BLACKLIST = {
     # The other alts of 不止 (不仅/不仅仅) are fine, so just block 不停 alt
     # instead of source-blocking 不止. Lets cilin still vary 不止 → 不仅(仅).
     '不停',
+    # 耳生 (alt of 陌生): "ear-strange" off-register for "陌生感" (feeling stranger).
+    # Other 陌生 alts (生分/生疏/眼生/面生) work in narrative; block this one alt.
+    '耳生',
 }
 
 
@@ -1226,6 +1229,21 @@ _CILIN_SOURCE_BLACKLIST = {
     # vertical sense. 汊港 = "tributary harbor" produces wild broken text
     # ("沿用清晰的汊港架构"). Block source.
     '分层',
+    # 冲击 cilin alts (冲刺/冲撞/冲锋/厮杀/拼杀/撞倒) all are military/physical
+    # collision; "文化冲击" / "情感冲击" / "市场冲击" need abstract impact sense.
+    # 冲锋 produces "文化冲锋" (cultural charge attack). Block source.
+    '冲击',
+    # 一头 cilin alts (一同/一块/一并/一方面/一派) treat 一头 as "together" — but
+    # "一头微卷的棕发" / "一头钻进去" use 一头 as "a head of (hair)" / "headfirst".
+    # 一并 produces "一并微卷的棕发" (broken). Block source.
+    '一头',
+    # 有时 cilin alts (偶发/偶发性/偶尔/偶然/奇迹/突发性) include 奇迹 = miracle,
+    # producing "奇迹候情绪就像伦敦的雨" (miracle wait emotion ≠ sometimes).
+    # Source blacklist (偶尔/偶然 OK but standalone 有时 sub rarely needed).
+    '有时',
+    # 记得 cilin only alt is 记忆 (memory, noun). "老王总是记得 → 老王总是记忆"
+    # flips verb→noun part-of-speech. Block source.
+    '记得',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
