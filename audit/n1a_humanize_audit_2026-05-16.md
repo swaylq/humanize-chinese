@@ -51,8 +51,8 @@ Round 2 主修 #1（最严重 typo-class），#2-#3 留下次（结构性 split 
 跑 HC3 N=20 中等长度 samples（100-800 字 chatgpt_answers）找 broken candidates 超出 hero 范围。
 
 1. ~~**`给予 X 菜肴 / 体验 / 支撑`** (HC3 sample 7 restaurant) — diversify_vocabulary['提供'] 还残留 '给出' alt（cycle 7 只修了 WORD_SYNONYMS path，这是第二 copy）。~~ **fixed 2026-05-17 cycle (heartbeat 13) — diversify_vocabulary['提供'] 从 ['给出', '带来'] 改 ['给予', '带来']，对齐 WORD_SYNONYMS 修法。post-fix 验证 sample 7 "给予 X 美食" 取代 "给出 X 美食"。**
-2. **`方向促进框架 / 方向催动框架 / 方向支持架构`** (HC3 sample 2 汽车) — "方向辅助系统" 被多重 substitution 改成 awkward 复合（辅助→促进/催动/帮助/支持，系统→框架/架构）。"汽车方向辅助系统" 是 fixed technical term，alts 都不合。修法：限制 '辅助' 和 '系统' 在 fixed-term 上下文（汽车/航空/电子）不替换。留下次 cycle。
-3. **`方向帮助系统`** (HC3 sample 2 汽车) — 同 #2 同 substitution family。
+2. ~~**`方向促进系统 / 方向催动系统 / 方向帮助系统`** (HC3 sample 2 汽车)~~ **fixed 2026-05-17 cycle (heartbeat 14) — 原 audit 误判 source 为 "辅助"，bisect 实际是 "助力"（普桑方向助力系统）。patterns_cn.json "助力" → ["帮助","推动","促进","支持"] 替换 key 加 negative lookahead `(?!系统|装置|器|泵|机构|油|车|马达|电机)`。compound noun 上下文跳过替换，verb 用法（助力企业转型）保留。post-fix 验证 "安装方向助力系统" 完整保留 3 次。Hero floor 全保（test_regression 9/9）。**
+3. ~~**`方向帮助系统`**~~ 同 #2 同 source/同 fix。
 4. **`极有可能 / 八成 / 多半 / 说不定`** (HC3 多 sample) — modal hedge 替换密集（"可能" → 多种 hedge），偶尔产 register slippage。低优先级。
 
 ## Round 3 audit (heartbeat 11, 2026-05-17)
