@@ -1210,6 +1210,11 @@ _CILIN_SOURCE_BLACKLIST = {
     # ("loop/cycle") flips meaning entirely ("本次写作重点回环主角" reads broken).
     # Block source — no alt fits the abstract topical usage.
     '围绕',
+    # 控制 cilin alts (主宰/克制/克服/决定/压抑/宰制) — most are semantic shifts
+    # for the common technical/abstract 控制 ("control / regulate / cap"). 决定
+    # = "decide/determine" produces "噪点决定" (broken: noise determines what?).
+    # Block source.
+    '控制',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
