@@ -122,10 +122,12 @@ _DEFECT_PATTERNS = (
     (r'地地', 'doubled_di'),          # 副词地+地 — broken by cycle 27/28
     (r'的的', 'doubled_de'),          # 形容词的+的 — broken by cycle 28
     (r'是是', 'doubled_shi'),         # 不过是→只是是 — broken by cycle 28
-    # 的地 — only fires when adverbial 地, NOT when 地 starts a compound noun
-    # (地皮/地区/地方/地带/地段/地形/地势/地盘/地球/地理/地下/地图/地铁/地址/
-    # 地点/地名/地表/地心/地壳/地震/地利/地处/地平/地面/地貌/地质/地层/地基).
-    (r'的地(?![皮区方带段形势盘球理下图铁址点名表心壳震利处平面貌质层基])', 'mixed_de_di'),
+    # 的地 — only fires when adverbial 地, NOT when 地 starts a compound noun.
+    # Exclusion list covers most common 地+X compounds:
+    # 地皮/地区/地方/地带/地段/地形/地势/地盘/地球/地理/地下/地图/地铁/地址/
+    # 地点/地名/地表/地心/地壳/地震/地利/地处/地平/地面/地貌/地质/地层/地基/
+    # 地域/地道/地步/地价/地板/地砖/地毯/地摊/地头/地主/地牢/地沟。
+    (r'的地(?![皮区方带段形势盘球理下图铁址点名表心壳震利处平面貌质层基域道步价板砖毯摊头主牢沟])', 'mixed_de_di'),
     (r'可以地', 'awkward_keyi_di'),    # 能够有效→可以地 — broken by cycle 29
     (r'有办法地', 'awkward_youbanfa_di'),  # cycle 29
     (r'有效地能', 'inverted_youxiao_neng'),  # cycle 29
