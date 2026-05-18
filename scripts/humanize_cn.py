@@ -3633,7 +3633,10 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     # AI). Drop cap target on long text so novel humanize approaches human 2.4
     # density instead of staying at AI's 4.4 baseline.
     cn_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
-    trans_target = 3.0 if cn_chars >= 1500 else 6.0
+    # Long-form (\u22651000) gets tighter 3.0 cap \u2014 deepseek humanized output averages
+    # trans_density 4.65 in 1000-2500 range, well above human ~2.5; expanded
+    # threshold from 1500 \u2192 1000.
+    trans_target = 3.0 if cn_chars >= 1000 else 6.0
     text = cap_transition_density(text, target=trans_target)
 
     # Novel/fiction register: strip overused AI-style intensifiers.
