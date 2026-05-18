@@ -312,7 +312,9 @@ WORD_SYNONYMS = {
     # Cycle 80 dropped '与此同时'. Cycle 94 swap '此外'/'另外'
     # (logic_connectors w=7 self-defeat) for '同样' / '一并' (clean).
     '同时': ['并且', '同样', '一并'],
-    '通过': ['借助', '凭借', '经由', '依靠'],
+    # 凭借/依靠 dropped: "通过窗户凝视" → "凭借窗户凝视" / "通过 ZK 分配" →
+    # "依靠 ZK 分配" 在技术/物理 介词 通过 语境 register shift。借助/经由 保留。
+    '通过': ['借助', '经由'],
     '根据': ['按照', '依据', '参照', '依照'],
     # '有效' removed: word is often adjectival (有效证件/有效身份/有效期),
     # and every alternative (管用/奏效/见效/起作用) is a verb/predicate that
