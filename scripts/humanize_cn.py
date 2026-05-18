@@ -350,7 +350,10 @@ WORD_SYNONYMS = {
     '必须': ['得', '务必', '非得', '须'],
     # cycle 214: dropped 兴许 — archaic dialect ("perhaps" 北方话/古风).
     # "事情兴许并不如表面所示" 读起来古旧。
-    '可能': ['也许', '或许', '大概'],
+    # 可能 dropped entirely: 也许/或许/大概 all break "不可能" idiom
+    # ("几乎不可能" → "几乎不也许" 等). Plain substring sub can't context-guard.
+    # Future: add masking infra for 不可能/极可能/极有可能/最可能 fixed phrases.
+    # '可能': drop entry
     # ── 名词 / 概念 ──
     # cycle 164: dropped '重要' — substring matches inside 重要性 (28 hits)
     # and 至关重要 (16 hits) and 重要性 → 核心性 / 要紧性 / 紧要性 is
