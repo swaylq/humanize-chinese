@@ -1177,6 +1177,11 @@ _CILIN_BLACKLIST = {
     # — different semantic from "in haste / immediately". "立即拱手" → "不久拱手"
     # broken. Sources still have many other haste alts (即刻/急忙/赶紧/连忙).
     '不久',
+    # 早慧 (alt of 智慧/聪明/聪慧 family): means "precocious wisdom from young
+    # age", not generic wisdom. "两世为人的智慧" → "两世为人的早慧" broken
+    # (lived-two-lives's precocious-wisdom ≠ wisdom). Other alts (灵性/聪慧/
+    # 聪颖/颖悟) cover the general intelligence sense.
+    '早慧',
 }
 
 
