@@ -226,7 +226,10 @@ WORD_SYNONYMS = {
     '表明': ['显示', '说明', '反映', '揭示'],
     '认为': ['觉得', '以为', '判断', '主张'],
     '需要': ['有必要', '须', '要', '得'],
-    '使用': ['运用', '采用', '用', '动用'],
+    # 动用 dropped: carries "mobilize/deploy" military-resource connotation,
+    # off for everyday "使用工具/使用方法" (使用电脑 → 动用电脑 reads off).
+    # 运用/采用/用 cover the routine use sense.
+    '使用': ['运用', '采用', '用'],
     '具有': ['带有', '拥有', '含有', '具备'],
     '导致': ['引发', '造成', '招致', '引起'],
     # Cycle 63: dropped '拿出' (physical/colloquial register).
