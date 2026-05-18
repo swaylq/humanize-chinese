@@ -428,7 +428,10 @@ WORD_SYNONYMS = {
     # (env variables ≠ scenario variables). 氛围/背景/局面 cover the contextual
     # /atmospheric sense.
     '环境': ['氛围', '背景', '局面'],
-    '系统': ['体系', '架构', '框架'],
+    # 框架 dropped: "专家系统/操作系统/推荐系统" 类 fixed term + 系统 在 general
+    # scene 被替成 "专家框架/操作框架" 破读。架构 同问题但稍微合理 ("系统架构"
+    # 是 valid 同源词)。Keep 体系/架构 only.
+    '系统': ['体系', '架构'],
     '策略': ['路线', '方案', '对策', '路子'],
 }
 
