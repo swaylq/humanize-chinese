@@ -1167,6 +1167,10 @@ _CILIN_BLACKLIST = {
     # (sigh-tone — nonsense). 语气 is "tone of speech" while 口气 there is
     # "breath/exhalation". Sources still have 口吻/话音/口风 alternatives.
     '语气',
+    # 不久 (alt of 急忙/赶紧/连忙/急匆匆/立即-family): means "not long after"
+    # — different semantic from "in haste / immediately". "立即拱手" → "不久拱手"
+    # broken. Sources still have many other haste alts (即刻/急忙/赶紧/连忙).
+    '不久',
 }
 
 
@@ -1284,6 +1288,10 @@ _CILIN_SOURCE_BLACKLIST = {
     # verb "lower/press-down" of 压低. "压低声音" → "低于声音" (broken — less-than
     # sound ≠ lower the voice). Block source.
     '压低',
+    # 起来 cilin alts (上马/下床/从头/兴起/初始/初步) all are noun-like or
+    # specific motions, none fits the resultative verb particle "起来"
+    # ("聊起来"/"站起来"). "聊了起来" → "聊了兴起" broken. Block source.
+    '起来',
     # cycle 247: 不易 cilin alts (不利/不错/对头/得法/无误/是的) — 不利 is
     # OPPOSITE meaning, others wrong slot. Most already individually
     # blacklisted; source block to be exhaustive.
