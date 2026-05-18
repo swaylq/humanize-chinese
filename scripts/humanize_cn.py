@@ -1182,6 +1182,15 @@ _CILIN_BLACKLIST = {
     # (lived-two-lives's precocious-wisdom ≠ wisdom). Other alts (灵性/聪慧/
     # 聪颖/颖悟) cover the general intelligence sense.
     '早慧',
+    # 学舌 (alt of 模拟/模仿/效仿/仿效 family): means "parrot/repeat speech",
+    # wrong for technical simulation. "压测模拟流量" → "压测学舌流量" broken.
+    # Other 模拟 alts (仿效/仿照) cover the imitate sense.
+    '学舌',
+    # 丰碑 (alt of 模范/榜样/典型/标兵 family): means "monument/landmark",
+    # wrong for 典型 = typical example. "典型场景" → "丰碑场景" broken
+    # (monument scene ≠ typical scenario). Other alts (模范/榜样/楷模) cover
+    # the exemplar sense.
+    '丰碑',
 }
 
 
