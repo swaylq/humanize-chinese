@@ -1,8 +1,8 @@
-# 🔧 中文 AI 文本去痕迹工具 &nbsp;[![Tweet](https://img.shields.io/badge/share%20on-Twitter%2FX-000000?style=flat-square&logo=x)](https://twitter.com/intent/tweet?text=humanize-chinese%20%E2%80%94%20%E5%85%8D%E8%B4%B9%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C%E7%9A%84%E4%B8%AD%E6%96%87%20AI%20%E6%96%87%E6%9C%AC%E5%8E%BB%E7%97%95%E8%BF%B9%E5%B7%A5%E5%85%B7%EF%BC%8C%E6%A3%80%E6%B5%8B%20%2B%20%E6%94%B9%E5%86%99%E4%B8%80%E6%AD%A5%E5%88%B0%E4%BD%8D%EF%BC%8C%E9%9B%B6%20LLM%20%E9%9B%B6%20API%20Key&url=https%3A%2F%2Fgithub.com%2Fvoidborne-d%2Fhumanize-chinese&hashtags=AIGC%2C%E4%B8%AD%E6%96%87NLP%2C%E5%BC%80%E6%BA%90%E5%B7%A5%E5%85%B7)
+# 🔧 中文 AI 文本去痕迹工具 &nbsp;[![Tweet](https://img.shields.io/badge/share%20on-Twitter%2FX-000000?style=flat-square&logo=x)](https://twitter.com/intent/tweet?text=humanize-chinese%20%E2%80%94%20%E5%85%8D%E8%B4%B9%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C%E7%9A%84%E4%B8%AD%E6%96%87%20AI%20%E6%96%87%E6%9C%AC%E5%8E%BB%E7%97%95%E8%BF%B9%E5%B7%A5%E5%85%B7%EF%BC%8C%E6%A3%80%E6%B5%8B%20%2B%20%E6%94%B9%E5%86%99%E4%B8%80%E6%AD%A5%E5%88%B0%E4%BD%8D%EF%BC%8C%E9%9B%B6%20LLM%20%E9%9B%B6%20API%20Key&url=https%3A%2F%2Fgithub.com%2Fswaylq%2Fhumanize-chinese&hashtags=AIGC%2C%E4%B8%AD%E6%96%87NLP%2C%E5%BC%80%E6%BA%90%E5%B7%A5%E5%85%B7)
 
 **免费、本地运行、零依赖、零 LLM。检测 + 改写一步到位。**
 
-[![GitHub stars](https://img.shields.io/github/stars/voidborne-d/humanize-chinese?style=flat-square)](https://github.com/voidborne-d/humanize-chinese)
+[![GitHub stars](https://img.shields.io/github/stars/swaylq/humanize-chinese?style=flat-square)](https://github.com/swaylq/humanize-chinese)
 [![ClawHub](https://img.shields.io/badge/clawhub-humanize--chinese-blue?style=flat-square)](https://clawhub.com/skills/humanize-chinese)
 [![License: MIT Non-Commercial](https://img.shields.io/badge/License-MIT_Non--Commercial-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.6+-blue?style=flat-square)](https://python.org)
@@ -144,10 +144,10 @@
 clawhub install humanize-chinese
 
 # 方式二：Git Clone
-git clone https://github.com/voidborne-d/humanize-chinese.git
+git clone https://github.com/swaylq/humanize-chinese.git
 
 # 方式三：Claude Code Skill
-npx skills add https://github.com/voidborne-d/humanize-chinese.git
+npx skills add https://github.com/swaylq/humanize-chinese.git
 ```
 
 不需要 `pip install` 任何东西。下载就能用。
@@ -159,7 +159,7 @@ npx skills add https://github.com/voidborne-d/humanize-chinese.git
 4 个 slash command，复制到 `.claude/commands/` 即可：
 
 ```bash
-git clone https://github.com/voidborne-d/humanize-chinese.git
+git clone https://github.com/swaylq/humanize-chinese.git
 cp humanize-chinese/claude-code/*.md YOUR_PROJECT/.claude/commands/
 ```
 
@@ -520,7 +520,7 @@ python evals/run_longform_benchmark.py --n-human 60 --seed 42 --best-of-n 20
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=voidborne-d/humanize-chinese&type=Date)](https://star-history.com/#voidborne-d/humanize-chinese&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=swaylq/humanize-chinese&type=Date)](https://star-history.com/#swaylq/humanize-chinese&Date)
 
 ---
 
@@ -534,7 +534,7 @@ python evals/run_longform_benchmark.py --n-human 60 --seed 42 --best-of-n 20
 - 集成到商业产品中作为功能卖点
 - 用本软件给客户提供付费改写 / AI 检测服务
 
-如需商业授权，请通过 [GitHub repo](https://github.com/voidborne-d/humanize-chinese) 联系作者。
+如需商业授权，请通过 [GitHub repo](https://github.com/swaylq/humanize-chinese) 联系作者。
 
 ## 运行测试
 

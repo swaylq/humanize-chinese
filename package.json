@@ -32,14 +32,14 @@
     "ai-writing",
     "text-humanizer"
   ],
-  "author": "voidborne-d",
+  "author": "swaylq",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voidborne-d/humanize-chinese.git"
+    "url": "https://github.com/swaylq/humanize-chinese.git"
   },
   "bugs": {
-    "url": "https://github.com/voidborne-d/humanize-chinese/issues"
+    "url": "https://github.com/swaylq/humanize-chinese/issues"
   },
-  "homepage": "https://github.com/voidborne-d/humanize-chinese#readme"
+  "homepage": "https://github.com/swaylq/humanize-chinese#readme"
 }

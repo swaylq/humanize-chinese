@@ -4,7 +4,7 @@
 
 ```bash
 # Clone the repo
-git clone https://github.com/voidborne-d/humanize-chinese.git
+git clone https://github.com/swaylq/humanize-chinese.git
 
 # Copy slash commands to your project
 cp -r humanize-chinese/claude-code/*.md YOUR_PROJECT/.claude/commands/
