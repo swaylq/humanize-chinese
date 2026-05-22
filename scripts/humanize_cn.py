@@ -1196,6 +1196,19 @@ _CILIN_BLACKLIST = {
     # (monument scene ≠ typical scenario). Other alts (模范/榜样/楷模) cover
     # the exemplar sense.
     '丰碑',
+    # 惟恐 (alt of 吓坏/心惊/只怕 family): means "only fear that..." (verb
+    # introducing subordinate clause), wrong slot for the state-of-shock noun
+    # used in "更令他心惊的是" → "更令他惟恐的是" (broken — verb in noun slot).
+    '惟恐',
+    # 脸蛋 / 脸蛋儿 (alts of 脸上/脸孔/脸庞/脸盘/脸膛): cutesy/childish register
+    # for a baby's cheek; wrong for adult/scarred-warrior context. "赵铁柱脸上
+    # 的伤疤" → "赵铁柱脸蛋儿的伤疤" register-mismatch. Other alts (脸庞/脸孔)
+    # cover the neutral face sense.
+    '脸蛋', '脸蛋儿',
+    # 其一 (alt of 这个/以此/本条): means "the first of several", only works as
+    # enumerative ("原因有二，其一...") — not a determiner. "希望这个故事的开篇"
+    # → "希望其一故事的开篇" broken.
+    '其一',
 }
 
 
@@ -1342,6 +1355,15 @@ _CILIN_SOURCE_BLACKLIST = {
     # "发现潜在的问题" — meaning shifted from latent to ambiguous. Every
     # cilin alt is a misfire; block source.
     '潜在',
+    # 心惊 cilin alts (只怕/吓坏/忧惧/惟恐) all are verb forms — "fear that..."
+    # or "be scared" — wrong slot for the "更令他心惊的是" construction where
+    # 心惊 is a stative reaction. Every alt collapses the slot. Block source.
+    '心惊',
+    # 有所 cilin alts (不无/享有/保有/具备/具有/兼具) all are "to possess"
+    # verbs; 有所 is an idiom-anchor adverb-verb compound ("有所不知" = "doesn't
+    # fully know", "有所了解" = "have some understanding"). Any alt destroys
+    # the fixed idiom: "有所不知" → "具备不知" (possess-not-know, broken).
+    '有所',
 }
 
 
