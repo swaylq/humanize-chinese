@@ -1850,6 +1850,30 @@ def _boost_one_para_via_merge(para, target_cv):
     return ''.join(s + p for s, p in pairs)
 
 
+# Numeric / quantifier characters that, when immediately preceding a 2-char
+# cilin key like 日后 / 日内 / 日前, signal the bigram is the tail of a
+# numeric-time compound (三日后 / 几日内 / 数日前). Substring-replacing the
+# bigram in that context corrupts the parent compound — observed
+# "三日后" → "三之后" via cilin alt 之后 of source 日后.
+_NUMERIC_COMPOUND_PREFIXES = frozenset('零一二三四五六七八九十百千万亿两数几多某若')
+
+
+def _safe_substring_replace(text, word, synonym):
+    """Replace first occurrence of `word` with `synonym`, skipping positions
+    where `word` is preceded by a numeric/quantifier character (signals the
+    word is the tail of a larger compound, e.g. 三日后 containing 日后).
+    Returns text unchanged if no safe occurrence found."""
+    i = 0
+    while True:
+        idx = text.find(word, i)
+        if idx < 0:
+            return text
+        if idx > 0 and text[idx - 1] in _NUMERIC_COMPOUND_PREFIXES:
+            i = idx + 1
+            continue
+        return text[:idx] + synonym + text[idx + len(word):]
+
+
 def reduce_cross_para_3gram_repeat(text, max_replacements=4, scene='general',
                                    style=None, seed=None):
     """v5 P1.3 humanize counter-measure for cross_para_3gram_repeat
@@ -1942,7 +1966,7 @@ def reduce_cross_para_3gram_repeat(text, max_replacements=4, scene='general',
         # term lands in earlier paragraphs and the variation shows up
         # later — closer to how humans drift).
         last_idx = para_indices[-1]
-        new_para = new_paragraphs[last_idx].replace(word, synonym, 1)
+        new_para = _safe_substring_replace(new_paragraphs[last_idx], word, synonym)
         if new_para != new_paragraphs[last_idx]:
             new_paragraphs[last_idx] = new_para
             replaced += 1
