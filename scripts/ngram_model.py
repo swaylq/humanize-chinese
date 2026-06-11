@@ -18,6 +18,10 @@ from math import log2, exp
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FREQ_FILE = os.path.join(SCRIPT_DIR, 'ngram_freq_cn.json')
 
+_ENABLE_V6 = False
+
+_EMOTIONAL_WORDS_CACHE = None
+
 # ─── Frequency Table Loading ───
 
 _FREQ_CACHE = None
@@ -805,6 +809,55 @@ def compute_sentence_length_features(text):
     }
 
 
+# ─── Emotional Clustering CV (D-3, v6) ───
+#
+# From ToW paper: AI text distributes emotional words evenly across all
+# paragraphs (low CV). Human writing concentrates emotions in specific
+# paragraphs (high CV).
+
+def compute_emotional_clustering(text):
+    global _EMOTIONAL_WORDS_CACHE
+    if _EMOTIONAL_WORDS_CACHE is None:
+        try:
+            from detect_cn import EMOTIONAL_WORDS as _EMOTIONAL_WORDS_CACHE
+        except ImportError:
+            try:
+                from scripts.detect_cn import EMOTIONAL_WORDS as _EMOTIONAL_WORDS_CACHE
+            except ImportError:
+                _EMOTIONAL_WORDS_CACHE = []
+    if not _EMOTIONAL_WORDS_CACHE:
+        return {'per_para_counts': [], 'cv': 0.0, 'n_paragraphs': 0}
+
+    raw_paras = re.split(r'\n\s*\n', text)
+    paragraphs = [p.strip() for p in raw_paras if p.strip()]
+
+    valid_paras = []
+    for p in paragraphs:
+        cn = sum(1 for c in p if '\u4e00' <= c <= '\u9fff')
+        if cn > 20:
+            valid_paras.append(p)
+
+    if len(valid_paras) < 3:
+        return {'per_para_counts': [0] * len(valid_paras), 'cv': 0.0,
+                'n_paragraphs': len(valid_paras)}
+
+    counts = []
+    for para in valid_paras:
+        cnt = sum(para.count(w) for w in _EMOTIONAL_WORDS_CACHE)
+        counts.append(cnt)
+
+    n = len(counts)
+    mean = sum(counts) / n
+    if mean == 0:
+        return {'per_para_counts': counts, 'cv': 0.0, 'n_paragraphs': n}
+
+    variance = sum((x - mean) ** 2 for x in counts) / n
+    std = variance ** 0.5
+    cv = std / mean
+
+    return {'per_para_counts': counts, 'cv': cv, 'n_paragraphs': n}
+
+
 # ─── MATTR / lexical diversity (E-8 / PATTR-lite per arxiv 2507.15092) ───
 #
 # HC3 300+300 calibration: char_mattr(window=100) Cohen's d = 0.700 (AI mean
@@ -1134,6 +1187,43 @@ def compute_para_sent_len_cv(text):
     }
 
 
+def compute_oe_overlap(text):
+    chars = _extract_chinese(text)
+    n = len(chars)
+
+    if n < 20:
+        return {'overlap': 0.0, 'opening_bigrams': 0, 'ending_bigrams': 0}
+
+    split_point = max(1, int(n * 0.2))
+    opening = chars[:split_point]
+    ending = chars[-split_point:]
+
+    opening_bigrams = set()
+    for i in range(len(opening) - 1):
+        opening_bigrams.add(opening[i] + opening[i + 1])
+
+    ending_bigrams = set()
+    for i in range(len(ending) - 1):
+        ending_bigrams.add(ending[i] + ending[i + 1])
+
+    intersection = opening_bigrams & ending_bigrams
+    union = opening_bigrams | ending_bigrams
+
+    if not union:
+        return {
+            'overlap': 0.0,
+            'opening_bigrams': len(opening_bigrams),
+            'ending_bigrams': len(ending_bigrams),
+        }
+
+    overlap = len(intersection) / len(union)
+    return {
+        'overlap': overlap,
+        'opening_bigrams': len(opening_bigrams),
+        'ending_bigrams': len(ending_bigrams),
+    }
+
+
 # ─── Combined Analysis ───
 
 def analyze_text(text):
@@ -1222,6 +1312,11 @@ def analyze_text(text):
 
     # Char-level MATTR (E-8, arxiv 2507.15092 PATTR-lite)
     char_mattr = compute_char_mattr(text, window=100)
+
+    if _ENABLE_V6:
+        oe_overlap = compute_oe_overlap(text)
+    else:
+        oe_overlap = {}
 
     # F-path multi-scale: unigram ppl and its ratio to trigram ppl.
     # HC3 pilot: uni_ppl alone d=0.08, uni/tri_ratio d=0.31 (AI concentrates
@@ -1338,7 +1433,19 @@ def analyze_text(text):
         'low_para_sent_len_cv': (
             para_slcv_mean > 0 and para_slcv_mean < 0.35 and para_slcv_n >= 2
         ),
+        # D-1 O-E bigram overlap (ToW v6): AI > 0.40, human ~0.308
+        'high_oe_overlap': (
+            _ENABLE_V6 and oe_overlap.get('overlap', 0) > 0.40
+            and char_count >= 100 and n_paras >= 3
+        ),
     }
+
+    if _ENABLE_V6:
+        ec = compute_emotional_clustering(text)
+        if ec.get('cv', 1.0) < 0.5 and ec.get('n_paragraphs', 0) >= 3:
+            indicators['low_emotional_cv'] = True
+    else:
+        ec = {}
 
     return {
         'perplexity': ppl,
@@ -1358,8 +1465,10 @@ def analyze_text(text):
         'para_slcv': para_slcv,
         'para_lcv': para_lcv,
         'cross_p3': cross_p3,
+        'oe_overlap': oe_overlap,
         'uni_ppl': uni_ppl,
         'uni_tri_ratio': uni_tri_ratio,
+        'emotional_clustering': ec,
         'indicators': indicators,
         'details': {
             'perplexity_result': {
@@ -1410,6 +1519,8 @@ LR_FEATURE_NAMES = (
     'para_sent_len_cv_avg', # v5 P1 2026-04-29, longform d=-2.08 (multi-paragraph only)
     'paragraph_length_cv',  # v5 P1.2 2026-04-29, longform d=-1.49 (multi-paragraph only)
     'cross_para_3gram_repeat',  # v5 P1.3 2026-04-29, longform d=+1.13 (multi-paragraph only)
+    'oe_overlap',               # v6 D-1 O-E bigram overlap, AI=0.494 human=0.308
+    'emotional_cv',             # v6 D-3 2026-06-11, emotional clustering CV + O-E overlap reserved slot
 )
 
 
@@ -1536,6 +1647,7 @@ def extract_feature_vector(text_or_analysis):
     para_slcv = analysis.get('para_slcv', {}) or {}
     para_lcv = analysis.get('para_lcv', {}) or {}
     cross_p3 = analysis.get('cross_p3', {}) or {}
+    ec = analysis.get('emotional_clustering', {}) or {}
 
     vec = [
         float(analysis.get('perplexity') or 0.0),
@@ -1563,6 +1675,8 @@ def extract_feature_vector(text_or_analysis):
         float(para_slcv.get('mean_cv') or 0.0),
         float(para_lcv.get('cv') or 0.0),
         float(cross_p3.get('ratio') or 0.0),
+        float(analysis.get('oe_overlap', {}).get('overlap') or 0.0),
+        float(ec.get('cv') or 0.0),
     ]
     return vec, list(LR_FEATURE_NAMES)
 
