@@ -1363,6 +1363,20 @@
       ]
     }
   },
+  "tow_patterns": {
+    "last_sentence_templates": [
+      "综上所述",
+      "总而言之",
+      "由此可见",
+      "总的来说",
+      "不难看出",
+      "综上",
+      "一言以蔽之",
+      "归根结底"
+    ],
+    "oe_overlap_threshold": 0.40,
+    "emotional_clustering_cv_threshold": 0.50
+  },
   "academic_patterns": {
     "description": "学术论文 AIGC 检测专用模式 — 针对知网/维普 AIGC 检测标准",
     "version": "1.0.0",

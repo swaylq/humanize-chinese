@@ -27,6 +27,8 @@ try:
 except ImportError:
     from scripts._text_utils import split_paragraphs
 
+_ENABLE_TOW = False
+
 # Load patterns from JSON config
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
@@ -110,6 +112,11 @@ EMOTIONAL_WORDS = CONFIG['style_signals']['emotional_words'] if CONFIG else [
 PERSONAL_MARKERS = CONFIG['style_signals']['personal_markers'] if CONFIG else [
     '我觉得', '我认为', '我个人', '在我看来', '说实话',
     '坦白讲', '老实说', '不瞒你说',
+]
+
+LAST_SENTENCE_TEMPLATES = [
+    '综上所述', '总而言之', '由此可见', '总的来说',
+    '不难看出', '综上', '一言以蔽之', '归根结底',
 ]
 
 # ─── Utility ───
@@ -467,6 +474,33 @@ def detect_patterns(text):
                 'severity': 'statistical',
             })
     
+    # ── ToW: Last-sentence template detection ──
+    if _ENABLE_TOW:
+        if sentences:
+            last_sent = sentences[-1]
+            if count_chinese_chars(last_sent) >= 5:
+                for template in LAST_SENTENCE_TEMPLATES:
+                    if last_sent.lstrip().startswith(template):
+                        issues['last_sentence_template'].append({
+                            'text': f'末句以"{template}"开头：{last_sent[:50]}',
+                            'severity': 'critical',
+                        })
+                        break
+
+    if _ENABLE_TOW and ngram_stats:
+        ec = ngram_stats.get('emotional_clustering', {})
+        if indicators.get('low_emotional_cv'):
+            issues['stat_low_emotional_cv'].append({
+                'text': f'情感词 CV {ec.get("cv", 0):.3f}（< 0.5，情感词在各段落间分布过于均匀，AI 特征）',
+                'severity': 'statistical',
+            })
+        if indicators.get('high_oe_overlap'):
+            oe = ngram_stats.get('oe_overlap', {})
+            issues['stat_high_oe_overlap'].append({
+                'text': f'首尾二字符重叠度 {oe.get("overlap", 0):.3f}（> 0.40，首段与末段用词高度重复，AI 机械总结特征）',
+                'severity': 'statistical',
+            })
+    
     # ── Compute metrics ──
     metrics = {
         'char_count': char_count,
@@ -519,6 +553,8 @@ STATISTICAL_WEIGHTS = {
     'stat_low_burstiness': 3,
     'stat_uniform_entropy': 2,
     'stat_low_para_sent_len_cv': 10,          # v5 P1 2026-04-29, longform d=-2.08 (multi-paragraph only)
+    'stat_low_emotional_cv': 4,              # ToW D-3 2026-06-11, emotional clustering CV
+    'stat_high_oe_overlap': 6,            # ToW D-1 2026-06-11, O-E bigram overlap
 }
 
 def calculate_score(issues, metrics):
@@ -627,6 +663,7 @@ CATEGORY_NAMES = {
     'three_part_structure': ('🔴', '三段式套路'),
     'mechanical_connectors': ('🔴', '机械连接词'),
     'empty_grand_words': ('🔴', '空洞宏大词'),
+    'last_sentence_template': ('🔴', '末句模板化'),
     'ai_high_freq_words': ('🟠', 'AI 高频词'),
     'filler_phrases': ('🟠', '套话/废话'),
     'balanced_arguments': ('🟠', '过度两面论'),
@@ -655,6 +692,7 @@ CATEGORY_NAMES = {
     'stat_low_binoculars_diff': ('📊', '双ngram对齐度高'),
     'stat_low_char_mattr': ('📊', '字符多样性偏低'),
     'stat_low_para_sent_len_cv': ('📊', '段内句长均匀'),
+    'stat_low_emotional_cv': ('📊', '情感词分布均匀'),
 }
 
 def format_output(issues, metrics, score, sentences=None, as_json=False, score_only=False, verbose=False):
@@ -702,13 +740,14 @@ def format_output(issues, metrics, score, sentences=None, as_json=False, score_o
     
     # Issues by severity
     for cat in ['three_part_structure', 'mechanical_connectors', 'empty_grand_words',
+                'last_sentence_template',
                 'ai_high_freq_words', 'filler_phrases', 'balanced_arguments', 'template_sentences',
                 'hedging_language', 'list_addiction', 'punctuation_overuse', 'excessive_rhetoric',
                 'stat_low_perplexity', 'stat_low_burstiness', 'stat_uniform_entropy',
                 'stat_low_surprisal_skew', 'stat_low_surprisal_kurt', 'stat_high_top10_bucket',
                 'stat_low_sentence_length_cv', 'stat_low_short_sentence_fraction',
                 'stat_low_comma_density', 'stat_high_transition_density', 'stat_high_curvature',
-                'stat_low_binoculars_diff', 'stat_low_char_mattr',
+                'stat_low_binoculars_diff', 'stat_low_char_mattr', 'stat_low_emotional_cv',
                 'uniform_paragraphs', 'low_burstiness', 'emotional_flatness', 'repetitive_starters', 'low_entropy']:
         if cat not in issues or not issues[cat]:
             continue
@@ -748,12 +787,16 @@ def main():
                         help='仅 rule+stat 打分（legacy 模式，忽略 LR 系数）')
     parser.add_argument('--scene', default='general', choices=['general', 'academic', 'novel', 'auto'],
                         help='LR 场景（academic 自动用 lr_coef_academic.json）')
+    parser.add_argument('--tow', action='store_true',
+                        help='启用 ToW 检测信号 (Opening-Ending overlap, Last-sentence template, Emotional clustering CV)')
 
     # Catch the common UX confusion (issue #6): users see `-o output.txt
     # --compare` documented for the rewriter and try them on the detector.
     # Surface a friendly redirect instead of argparse's terse "unrecognized
     # arguments".
     args, unknown = parser.parse_known_args()
+    global _ENABLE_TOW
+    _ENABLE_TOW = args.tow
     rewriter_flags = {'-o', '--output', '--compare', '-a', '--aggressive'}
     misuse = [a for a in unknown if a in rewriter_flags]
     if misuse:

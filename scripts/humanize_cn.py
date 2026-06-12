@@ -18,10 +18,15 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Module-level flag: whether to apply noise strategies (strategies 2 & 3)
 _USE_NOISE = True
 
+# Module-level flag: whether LaTeX protection is active
+_USE_PROTECT_LATEX = False
+
 # Module-level flag: whether to expand candidates with CiLin synonyms dict
 # (~40K words, offline). Off by default for deterministic-ish behavior; opt-in
 # via --cilin CLI flag.
 _USE_CILIN = False
+
+_ENABLE_TOW = False
 
 _ACADEMIC_LR_MARKERS = (
     '本研究',
@@ -2528,7 +2533,7 @@ def _dialogue_density_local(text):
 _NARRATIVE_SAFE_CATEGORIES = ['hedging', 'uncertainty', 'self_correction']
 
 
-def inject_noise_expressions(text, density=0.15, style='general'):
+def inject_noise_expressions(text, density=0.15, style='general', clustered=False):
     """
     策略3: 在句子间或句中适当位置插入噪声表达。
     density: 大约每多少句插入一个（0.15 ≈ 每 6-7 句一个）
@@ -2558,6 +2563,26 @@ def inject_noise_expressions(text, density=0.15, style='general'):
             categories = [c for c in categories if c in _NARRATIVE_SAFE_CATEGORIES]
             if not categories:
                 return text
+
+    if clustered and _ENABLE_TOW:
+        paragraphs = split_paragraphs(text)
+        if len(paragraphs) <= 2:
+            pass
+        else:
+            para_cn_counts = []
+            for i, p in enumerate(paragraphs):
+                cn_count = len(re.findall(r'[\u4e00-\u9fff]', p))
+                para_cn_counts.append((cn_count, i, p))
+            para_cn_counts.sort(key=lambda x: x[0])
+            target_indices = {para_cn_counts[0][1], para_cn_counts[1][1]}
+            result = []
+            for i, p in enumerate(paragraphs):
+                if i in target_indices:
+                    result.append(inject_noise_expressions(
+                        p, density=density, style=style, clustered=False))
+                else:
+                    result.append(p)
+            return join_paragraphs(result)
 
     # Split into sentences
     parts = re.split(r'([。！？])', text)
@@ -3442,7 +3467,8 @@ def _format_best_of_debug(seed, scene_picked, lr_scores, secondary, rank_score,
 
 def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAULT_BEST_OF_N,
              style=None, debug_best_of_n=False, score_mode='lr',
-             secondary_weight=DEFAULT_SECONDARY_WEIGHT):
+             secondary_weight=DEFAULT_SECONDARY_WEIGHT, protect_latex=False,
+             enable_tow=None):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -3456,10 +3482,17 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     (requires scripts/lr_coef_*.json). Useful when minimizing LR score matters
     more than latency.
 
+    protect_latex: if True, all LaTeX markup (commands, math blocks, braces,
+    environments) is replaced with opaque placeholders before processing and
+    restored afterwards. Prevents humanize from corrupting LaTeX syntax.
+
     Rationale: HC3 benchmark showed that full pipeline on already-clean text
     (source score < 15) adds spurious AI patterns (段落均匀/熵低) via noise
     injection, sometimes INCREASING detected score. Tiered intensity avoids this.
     """
+    if enable_tow is not None:
+        global _ENABLE_TOW
+        _ENABLE_TOW = enable_tow
     if best_of_n and best_of_n > 1:
         try:
             from ngram_model import compute_lr_score
@@ -3479,7 +3512,8 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         for i in range(best_of_n):
             s = base_seed + i
             out = humanize(text, scene=scene, aggressive=aggressive,
-                           seed=s, best_of_n=None, style=style)
+                           seed=s, best_of_n=None, style=style,
+                           protect_latex=protect_latex)
             lr_scene = _pick_lr_scene(out)
             if lr_scene == 'longform':
                 out = _apply_longform_mutation_profile(
@@ -3512,12 +3546,29 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
                 print(_format_best_of_debug(s, lr_scene, lr_scores, secondary,
                                             rank_score, fused, top_contribs),
                       file=sys.stderr)
+            if _ENABLE_TOW:
+                orig_chars = _count_chinese_chars(text)
+                out_chars = _count_chinese_chars(out)
+                len_diff_ratio = (out_chars - orig_chars) / max(1, orig_chars)
+                if len_diff_ratio > 0.30:
+                    length_penalty = (len_diff_ratio - 0.30) * 10
+                    rank_score += length_penalty
             candidates.append((rank_score, rank_tiebreak, s, out))
         candidates.sort(key=lambda x: (x[0], x[1], x[2]))
         return candidates[0][3]
 
     if seed is not None:
         random.seed(seed)
+
+    # ── Protection layer: replace LaTeX markup with placeholders ──
+    _protect_layer = None
+    if protect_latex or _USE_PROTECT_LATEX:
+        try:
+            from _humanize_protect import get_layer
+        except ImportError:
+            from scripts._humanize_protect import get_layer
+        _protect_layer = get_layer()
+        text = _protect_layer.wrap(text, latex=True)
 
     config = SCENES.get(scene, SCENES['general'])
     casualness = config.get('casualness', 0.3)
@@ -3539,6 +3590,17 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     # Pass 1: Structure cleanup — always run (safe, targeted)
     text = remove_three_part_structure(text)
     text = replace_phrases(text, casualness)
+
+    # ToW R-3: Opening-Ending Shallow Rewriting
+    _oe_parts = None
+    if _ENABLE_TOW and scene in ('academic', 'formal'):
+        paragraphs = split_paragraphs(text)
+        if len(paragraphs) >= 5:
+            oe_body = paragraphs[:2]
+            oe_end = paragraphs[-2:]
+            mid_paragraphs = paragraphs[2:-2]
+            _oe_parts = (oe_body, oe_end)
+            text = join_paragraphs(mid_paragraphs)
 
     # Pass 2: Deep sentence restructuring — all tiers (with moderate strength in conservative)
     try:
@@ -3605,7 +3667,7 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             # personal injections in academic samples ('不瞒你说' / '说到底' /
             # '讲真' / '约莫' / '估摸着') that read off-register.
             noise_style = 'academic' if scene == 'academic' else 'general'
-            text = inject_noise_expressions(text, density=noise_density, style=noise_style)
+            text = inject_noise_expressions(text, density=noise_density, style=noise_style, clustered=_ENABLE_TOW)
         text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
 
     # v5 P1 humanize counter-measure for stat_low_para_sent_len_cv. The
@@ -3670,6 +3732,12 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         text = re.sub(r'\u5c24\u4e3a', '', text)
         text = re.sub(r'\u9887\u4e3a', '', text)
 
+    # ToW R-3: Reassemble OE paragraphs
+    if _oe_parts is not None:
+        oe_body, oe_end = _oe_parts
+        mid_paragraphs = split_paragraphs(text)
+        text = join_paragraphs(oe_body + mid_paragraphs + oe_end)
+
     # Clean up artifacts
     text = re.sub(r'[，,]{2,}', '，', text)  # Remove double commas
     text = re.sub(r'[。]{2,}', '。', text)    # Remove double periods
@@ -3722,7 +3790,10 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
                 
                 text = ''.join(sentences)
 
-    
+    # ── Restore protected LaTeX spans ──
+    if _protect_layer is not None:
+        text = _protect_layer.unwrap(text)
+
     return text.strip()
 
 # ─── Main ───
@@ -3753,6 +3824,10 @@ def main():
                        help='快速模式（= --no-stats --no-noise），只跑短语替换 + 结构清理')
     parser.add_argument('--cilin', action='store_true',
                        help='用 CiLin 同义词词林扩展候选（~40K 词 vs 手工 200 词）')
+    parser.add_argument('--protect-latex', action='store_true',
+                       help='保护 LaTeX 标记（命令、花括号块、数学模式等），防止被改写破坏')
+    parser.add_argument('--tow', action='store_true',
+                        help='启用 ToW 改写优化 (长度罚分, 聚集情感注入, 首尾浅改写)')
 
     args = parser.parse_args()
 
@@ -3767,6 +3842,14 @@ def main():
     # Toggle CiLin expansion
     global _USE_CILIN
     _USE_CILIN = args.cilin
+
+    # Toggle LaTeX protection
+    global _USE_PROTECT_LATEX
+    _USE_PROTECT_LATEX = args.protect_latex
+
+    # Toggle ToW mode
+    global _ENABLE_TOW
+    _ENABLE_TOW = args.tow
     
     # Read input
     if args.file:
@@ -3788,7 +3871,9 @@ def main():
                        best_of_n=args.best_of_n, style=args.style,
                        debug_best_of_n=args.debug_best_of_n,
                        score_mode=args.score_mode,
-                       secondary_weight=args.secondary_weight)
+                       secondary_weight=args.secondary_weight,
+                       protect_latex=args.protect_latex,
+                       enable_tow=args.tow)
     
     # Apply style if specified
     if args.style:
