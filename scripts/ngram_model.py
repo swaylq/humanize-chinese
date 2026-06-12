@@ -18,7 +18,7 @@ from math import log2, exp
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FREQ_FILE = os.path.join(SCRIPT_DIR, 'ngram_freq_cn.json')
 
-_ENABLE_V6 = False
+_ENABLE_TOW = False
 
 _EMOTIONAL_WORDS_CACHE = None
 
@@ -809,7 +809,7 @@ def compute_sentence_length_features(text):
     }
 
 
-# ─── Emotional Clustering CV (D-3, v6) ───
+# ─── Emotional Clustering CV (D-3, ToW) ───
 #
 # From ToW paper: AI text distributes emotional words evenly across all
 # paragraphs (low CV). Human writing concentrates emotions in specific
@@ -1313,7 +1313,7 @@ def analyze_text(text):
     # Char-level MATTR (E-8, arxiv 2507.15092 PATTR-lite)
     char_mattr = compute_char_mattr(text, window=100)
 
-    if _ENABLE_V6:
+    if _ENABLE_TOW:
         oe_overlap = compute_oe_overlap(text)
     else:
         oe_overlap = {}
@@ -1433,14 +1433,14 @@ def analyze_text(text):
         'low_para_sent_len_cv': (
             para_slcv_mean > 0 and para_slcv_mean < 0.35 and para_slcv_n >= 2
         ),
-        # D-1 O-E bigram overlap (ToW v6): AI > 0.40, human ~0.308
+        # D-1 O-E bigram overlap (ToW): AI > 0.40, human ~0.308
         'high_oe_overlap': (
-            _ENABLE_V6 and oe_overlap.get('overlap', 0) > 0.40
+            _ENABLE_TOW and oe_overlap.get('overlap', 0) > 0.40
             and char_count >= 100 and n_paras >= 3
         ),
     }
 
-    if _ENABLE_V6:
+    if _ENABLE_TOW:
         ec = compute_emotional_clustering(text)
         if ec.get('cv', 1.0) < 0.5 and ec.get('n_paragraphs', 0) >= 3:
             indicators['low_emotional_cv'] = True
@@ -1519,8 +1519,8 @@ LR_FEATURE_NAMES = (
     'para_sent_len_cv_avg', # v5 P1 2026-04-29, longform d=-2.08 (multi-paragraph only)
     'paragraph_length_cv',  # v5 P1.2 2026-04-29, longform d=-1.49 (multi-paragraph only)
     'cross_para_3gram_repeat',  # v5 P1.3 2026-04-29, longform d=+1.13 (multi-paragraph only)
-    'oe_overlap',               # v6 D-1 O-E bigram overlap, AI=0.494 human=0.308
-    'emotional_cv',             # v6 D-3 2026-06-11, emotional clustering CV + O-E overlap reserved slot
+    'oe_overlap',               # ToW D-1 O-E bigram overlap, AI=0.494 human=0.308
+    'emotional_cv',             # ToW D-3 2026-06-11, emotional clustering CV + O-E overlap reserved slot
 )
 
 

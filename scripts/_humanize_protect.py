@@ -36,6 +36,9 @@ _LATEX_PATTERNS = [
     # ── scope braces: {\cmd{arg} text}, {\small text} ──
     # MUST run before command-args so the whole {\color{red} 值得注意的是}
     # is captured as one unit, not split into \color{red} + bare braces.
+    # Short Chinese content (<=15 chars, e.g. titles like {\textbf 第一章})
+    # is NOT protected — the brace text can be rewritten, only the command
+    # itself survives. Long content (paragraph-level) IS protected.
     (r'\{\\[a-zA-Z@]+(?:\*)?(?:\[[^\]]*\])*(?:\{[^}]*\})?[^}]*\}',
                                               'latex-scope-brace'),
     # ── commands with arguments ──
@@ -66,6 +69,11 @@ def protect_latex(text):
 
     Returns (protected_text, mapping) where *mapping* is
     {placeholder_str: original_str}.
+
+    Scope-brace gating: {\cmd 短标题} with <=15 Chinese chars inside
+    is NOT protected as a whole — the command still gets protected
+    by later patterns, but the brace text remains rewriteable.
+    Long scope-brace content (paragraph-level) IS fully protected.
     """
     mapping = {}
     idx = 0
@@ -77,11 +85,21 @@ def protect_latex(text):
             if not m:
                 break
             original = m.group(0)
+
+            # Scope-brace gating: skip short Chinese content
+            if label == 'latex-scope-brace':
+                cn_count = sum(1 for c in original if '\u4e00' <= c <= '\u9fff')
+                if cn_count <= 6:
+                    text = text[:m.start()] + '\ue001' + text[m.start()+1:]
+                    continue
+
             placeholder = _make_placeholder(idx, label)
             mapping[placeholder] = original
             text = text[:m.start()] + placeholder + text[m.end():]
             idx += 1
 
+    # Clean up scope-brace skip markers
+    text = text.replace('\ue001', '{')
     return text, mapping
 
 

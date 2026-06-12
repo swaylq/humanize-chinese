@@ -27,7 +27,7 @@ try:
 except ImportError:
     from scripts._text_utils import split_paragraphs
 
-_ENABLE_V6 = False
+_ENABLE_TOW = False
 
 # Load patterns from JSON config
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -474,8 +474,8 @@ def detect_patterns(text):
                 'severity': 'statistical',
             })
     
-    # ── v6: Last-sentence template detection ──
-    if _ENABLE_V6:
+    # ── ToW: Last-sentence template detection ──
+    if _ENABLE_TOW:
         if sentences:
             last_sent = sentences[-1]
             if count_chinese_chars(last_sent) >= 5:
@@ -487,7 +487,7 @@ def detect_patterns(text):
                         })
                         break
 
-    if _ENABLE_V6 and ngram_stats:
+    if _ENABLE_TOW and ngram_stats:
         ec = ngram_stats.get('emotional_clustering', {})
         if indicators.get('low_emotional_cv'):
             issues['stat_low_emotional_cv'].append({
@@ -553,8 +553,8 @@ STATISTICAL_WEIGHTS = {
     'stat_low_burstiness': 3,
     'stat_uniform_entropy': 2,
     'stat_low_para_sent_len_cv': 10,          # v5 P1 2026-04-29, longform d=-2.08 (multi-paragraph only)
-    'stat_low_emotional_cv': 4,              # v6 D-3 2026-06-11, emotional clustering CV
-    'stat_high_oe_overlap': 6,            # v6 D-1 2026-06-11, O-E bigram overlap
+    'stat_low_emotional_cv': 4,              # ToW D-3 2026-06-11, emotional clustering CV
+    'stat_high_oe_overlap': 6,            # ToW D-1 2026-06-11, O-E bigram overlap
 }
 
 def calculate_score(issues, metrics):
@@ -787,16 +787,16 @@ def main():
                         help='仅 rule+stat 打分（legacy 模式，忽略 LR 系数）')
     parser.add_argument('--scene', default='general', choices=['general', 'academic', 'novel', 'auto'],
                         help='LR 场景（academic 自动用 lr_coef_academic.json）')
-    parser.add_argument('--enable-v6', action='store_true',
-                        help='启用 v6 检测信号 (Opening-Ending overlap, Last-sentence template, Emotional clustering CV)')
+    parser.add_argument('--tow', action='store_true',
+                        help='启用 ToW 检测信号 (Opening-Ending overlap, Last-sentence template, Emotional clustering CV)')
 
     # Catch the common UX confusion (issue #6): users see `-o output.txt
     # --compare` documented for the rewriter and try them on the detector.
     # Surface a friendly redirect instead of argparse's terse "unrecognized
     # arguments".
     args, unknown = parser.parse_known_args()
-    global _ENABLE_V6
-    _ENABLE_V6 = args.enable_v6
+    global _ENABLE_TOW
+    _ENABLE_TOW = args.tow
     rewriter_flags = {'-o', '--output', '--compare', '-a', '--aggressive'}
     misuse = [a for a in unknown if a in rewriter_flags]
     if misuse:
