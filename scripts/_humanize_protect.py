@@ -33,6 +33,11 @@ _LATEX_PATTERNS = [
     (r'\\\[.*?\\\]',                         'latex-displaymath'),
     # ── environments \begin{...} ... \end{...} ──
     (r'\\begin\{[^}]*\}.*?\\end\{[^}]*\}',  'latex-environment'),
+    # ── scope braces: {\cmd{arg} text}, {\small text} ──
+    # MUST run before command-args so the whole {\color{red} 值得注意的是}
+    # is captured as one unit, not split into \color{red} + bare braces.
+    (r'\{\\[a-zA-Z@]+(?:\*)?(?:\[[^\]]*\])*(?:\{[^}]*\})?[^}]*\}',
+                                              'latex-scope-brace'),
     # ── commands with arguments ──
     (r'\\[a-zA-Z@]+(?:\*)?(?:\[[^\]]*\])*(?:\{[^}]*\})+',
                                               'latex-command-args'),
