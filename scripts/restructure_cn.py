@@ -1302,7 +1302,8 @@ def _diversify_in_paragraph(text, target_cv, target_short_frac):
 #  主入口：深度改写
 # ═══════════════════════════════════════════════════════════════════
 
-def deep_restructure(text, aggressive=False, scene='general'):
+def deep_restructure(text, aggressive=False, scene='general',
+                     strength=None, delete_prob=None):
     """对中文文本进行深度句级改写。
 
     按顺序执行：
@@ -1318,12 +1319,16 @@ def deep_restructure(text, aggressive=False, scene='general'):
         scene: passed for future use; currently insert threshold stays at 3 for
                all scenes (D-3 scene-aware attempt at cycle 29 regressed
                general +2 / xhs +6 via indirect score paths)
+        strength: optional override for restructure strength (used by adaptive router)
+        delete_prob: optional override for deletion probability (used by adaptive router)
 
     Returns:
         深度改写后的文本
     """
-    strength = 0.6 if aggressive else 0.4
-    delete_prob = 0.6 if aggressive else 0.35
+    if strength is None:
+        strength = 0.6 if aggressive else 0.4
+    if delete_prob is None:
+        delete_prob = 0.6 if aggressive else 0.35
 
     # 1. 句式结构变换
     text = restructure_sentences(text, strength=strength)

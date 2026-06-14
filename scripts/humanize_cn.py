@@ -64,6 +64,12 @@ try:
 except ImportError:
     from scripts._text_utils import join_paragraphs, split_paragraphs
 
+try:
+    from dimension_router import diagnose_scores, route_strategy
+    _HAS_DIMENSION_ROUTER = True
+except ImportError:
+    _HAS_DIMENSION_ROUTER = False
+
 # Module-level flag: whether to use stats optimization (can be toggled by CLI)
 _USE_STATS = True
 PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
@@ -2315,7 +2321,8 @@ _ZAI_LOCATIVE_RE = re.compile(
 )
 
 
-def randomize_sentence_lengths(text, aggressive=False, seed=None):
+def randomize_sentence_lengths(text, aggressive=False, seed=None,
+                               merge_rate=None, truncate_rate=None):
     """
     策略2: 刻意制造不均匀的句子长度分布。
     - 随机选 20% 的短句保持极短
@@ -2340,8 +2347,10 @@ def randomize_sentence_lengths(text, aggressive=False, seed=None):
     if len(sentences) < 4:
         return text
 
-    merge_rate = 0.15 if not aggressive else 0.25
-    truncate_rate = 0.15 if not aggressive else 0.25
+    if merge_rate is None:
+        merge_rate = 0.15 if not aggressive else 0.25
+    if truncate_rate is None:
+        truncate_rate = 0.15 if not aggressive else 0.25
 
     result = []
     i = 0
@@ -3442,7 +3451,7 @@ def _format_best_of_debug(seed, scene_picked, lr_scores, secondary, rank_score,
 
 def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAULT_BEST_OF_N,
              style=None, debug_best_of_n=False, score_mode='lr',
-             secondary_weight=DEFAULT_SECONDARY_WEIGHT):
+             secondary_weight=DEFAULT_SECONDARY_WEIGHT, adaptive=False):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -3536,6 +3545,15 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     else:
         tier = 'conservative'
 
+    # ── Adaptive dimension-aware routing ──
+    route = None
+    if adaptive and _HAS_DIMENSION_ROUTER:
+        try:
+            dim_scores = diagnose_scores(text)
+            route = route_strategy(dim_scores['dims'], tier=tier)
+        except Exception:
+            route = None
+
     # Pass 1: Structure cleanup — always run (safe, targeted)
     text = remove_three_part_structure(text)
     text = replace_phrases(text, casualness)
@@ -3550,7 +3568,16 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             deep_restructure = None
     if deep_restructure:
         # Conservative keeps restructure but with aggressive=False to be gentler
-        text = deep_restructure(text, aggressive=aggressive, scene=scene)
+        if route and route['ops'].get('deep_restructure'):
+            dr_ops = route['ops']['deep_restructure']
+            dr_strength = dr_ops.get('strength')
+            dr_delete_prob = dr_ops.get('delete_prob')
+            # Skip operation if all params are zero
+            if dr_strength != 0 or dr_delete_prob != 0:
+                text = deep_restructure(text, aggressive=aggressive, scene=scene,
+                                        strength=dr_strength, delete_prob=dr_delete_prob)
+        else:
+            text = deep_restructure(text, aggressive=aggressive, scene=scene)
 
     # Pass 2b: Sentence merge/split
     if config.get('merge_short', False):
@@ -3576,27 +3603,34 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     # ── Perplexity-boosting strategies — tier-gated ──
     # Bigram substitution active in moderate+full (safe, targeted)
     if tier != 'conservative':
-        bigram_strength = 0.5 if aggressive else 0.3
-        if tier == 'moderate':
-            bigram_strength *= 0.6
+        if route and route['ops'].get('phrase_replace'):
+            bigram_strength = route['ops']['phrase_replace']['bigram_strength']
+        else:
+            bigram_strength = 0.5 if aggressive else 0.3
+            if tier == 'moderate':
+                bigram_strength *= 0.6
         # Route bigram substitution through the novel-register filter when
         # --style novel is active. NOVEL_BLACKLIST_CANDIDATES strips the
         # overtly colloquial / book-Chinese substitutes ('搞'/'拉高'/'业已'/
         # '早就') that break narrative register, while keeping
         # ('察觉'/'识破') that academic mode rejects.
         bigram_scene = 'novel' if style == 'novel' else scene
-        text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=bigram_scene)
+        if bigram_strength > 0:
+            text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=bigram_scene)
 
     # Noise + sentence randomization only at full tier — these are the operations
     # that on HC3 sometimes added spurious AI patterns to already-clean text.
     if tier == 'full' and _USE_NOISE:
-        noise_density = 0.25 if aggressive else 0.15
+        if route and route['ops'].get('noise_injection'):
+            noise_density = route['ops']['noise_injection']['density']
+        else:
+            noise_density = 0.25 if aggressive else 0.15
         # Novel/fiction register: noise injection (regardless of expression
         # subset) frequently lands on prepositional or vocative sentence heads
         # ('作为...' / '人物名+verb') and reads as awkward. Lean on word
         # substitutions + transition cap + paraphrase replacement for delta
         # in novel mode instead.
-        if style != 'novel':
+        if style != 'novel' and noise_density > 0:
             # Cycle 104: route academic scene through NOISE_ACADEMIC_EXPRESSIONS
             # subset (hedging / self_correction / uncertainty). Cycle 54 tried
             # this and lost -2 academic hero, but cycles 76-101 since cleaned
@@ -3606,7 +3640,16 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             # '讲真' / '约莫' / '估摸着') that read off-register.
             noise_style = 'academic' if scene == 'academic' else 'general'
             text = inject_noise_expressions(text, density=noise_density, style=noise_style)
-        text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
+        if route and route['ops'].get('sentence_len_randomize'):
+            slr_ops = route['ops']['sentence_len_randomize']
+            slr_merge_rate = slr_ops.get('merge_rate')
+            slr_truncate_rate = slr_ops.get('truncate_rate')
+            if slr_merge_rate != 0 or slr_truncate_rate != 0:
+                text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed,
+                                                   merge_rate=slr_merge_rate,
+                                                   truncate_rate=slr_truncate_rate)
+        else:
+            text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
 
     # v5 P1 humanize counter-measure for stat_low_para_sent_len_cv. The
     # truncation variant (boost_para_sent_len_cv) was shelved because
@@ -3753,6 +3796,8 @@ def main():
                        help='快速模式（= --no-stats --no-noise），只跑短语替换 + 结构清理')
     parser.add_argument('--cilin', action='store_true',
                        help='用 CiLin 同义词词林扩展候选（~40K 词 vs 手工 200 词）')
+    parser.add_argument('--adaptive', action='store_true',
+                        help='启用维度感知策略路由 (根据各维度AI得分定向分配改写强度)')
 
     args = parser.parse_args()
 
@@ -3788,7 +3833,8 @@ def main():
                        best_of_n=args.best_of_n, style=args.style,
                        debug_best_of_n=args.debug_best_of_n,
                        score_mode=args.score_mode,
-                       secondary_weight=args.secondary_weight)
+                       secondary_weight=args.secondary_weight,
+                       adaptive=args.adaptive)
     
     # Apply style if specified
     if args.style:

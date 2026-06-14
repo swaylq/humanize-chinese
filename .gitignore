@@ -1,5 +1,6 @@
 scripts/__pycache__/
 evals/__pycache__/
+tests/__pycache__/
 
 # Local-only: 20MB 2nd ngram trained on HC3 human corpus (B-path)
 # Regenerate via: python scripts/train_ngram_human.py
@@ -20,3 +21,23 @@ evals/compression_human_seed.txt
 
 # scripts/lr_coef_academic.json is checked in (2KB). To retrain on a
 # different corpus: python scripts/train_lr_academic.py
+
+# ── Dimension-aware routing: 测试/校准脚本 (本地开发用) ──
+scripts/compare_baseline.py
+scripts/download_hc3_calib.py
+scripts/extract_cred.py
+scripts/calibrate_weights.py
+
+# ── Dimension-aware routing: 校准/测试数据 ──
+scripts/calib_texts.jsonl
+scripts/cred_test_texts.jsonl
+scripts/dimension_weights_single.json
+
+# ── Dimension-aware routing: 对比报告 ──
+scripts/comparison_report.json
+scripts/comparison_report.csv
+scripts/comparison_report_cred.json
+scripts/comparison_report_cred.csv
+scripts/PR_diff.patch
+scripts/full_diff.patch
+scripts/diff_stat.txt
