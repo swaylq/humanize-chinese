@@ -45,7 +45,10 @@ scripts/diff_stat.txt
 # ── Dimension-aware routing: Showcase 脚本和报告 ──
 scripts/showcase_picker.py
 scripts/showcase_report.md
+scripts/showcase_v2.py
+scripts/showcase_v2_output/
+scripts/_score_one.py
 scripts/showcase_v2_cache.json
-
+humanize-chinese-dimension\scripts\PR_REPORT.md
 # ── 用户手动执行的脚本 (不参与提交) ──
 scripts/run_showcase_v2.ps1
