@@ -41,3 +41,11 @@ scripts/comparison_report_cred.csv
 scripts/PR_diff.patch
 scripts/full_diff.patch
 scripts/diff_stat.txt
+
+# ── Dimension-aware routing: Showcase 脚本和报告 ──
+scripts/showcase_picker.py
+scripts/showcase_report.md
+scripts/showcase_v2_cache.json
+
+# ── 用户手动执行的脚本 (不参与提交) ──
+scripts/run_showcase_v2.ps1
