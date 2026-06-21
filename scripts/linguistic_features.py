@@ -837,6 +837,56 @@ def _print_result(result, title=""):
         print(f"\n  维普对齐 AIGC 风险分: {result['_vipu_aligned_score']:.2f} / 100")
 
 
+# ============================================================================
+# 逻辑回归二分类器 (权重存 JSON，零外部依赖)
+# ============================================================================
+
+_LOGISTIC_MODEL_CACHE = None  # 模块级缓存，避免重复读文件
+
+def compute_logistic_score(text):
+    """用 logistic_ai_classifier_v2.json 推理 p(AI | text)。
+
+    纯 Python 实现，仅依赖 jieba + standard library。
+    缓存模型文件在内存中，多次调用避免重复 I/O。
+
+    返回: p_ai (0.0~1.0)，或 None（模型文件缺失时降级）
+    """
+    global _LOGISTIC_MODEL_CACHE
+
+    if _LOGISTIC_MODEL_CACHE is None:
+        model_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'weights', 'logistic_ai_classifier_v2.json',
+        )
+        if not os.path.exists(model_path):
+            return None
+        with open(model_path, encoding='utf-8') as f:
+            _LOGISTIC_MODEL_CACHE = json.load(f)
+
+    model = _LOGISTIC_MODEL_CACHE
+    w = model['weights']
+    b = model['bias']
+    means = model['means']
+    stds = model['stds']
+    keys = model.get('features') or model.get('feature_names', [])
+
+    feat = diagnose_linguistic_features(text)
+    z = b
+    for i, k in enumerate(keys):
+        if i < len(w):
+            xi = feat.get(k, 0.0)
+            si = stds[i] if i < len(stds) and stds[i] > 0 else 1.0
+            mi = means[i] if i < len(means) else 0.0
+            z += w[i] * (xi - mi) / si
+
+    if z > 500:
+        return 1.0
+    elif z < -500:
+        return 0.0
+    else:
+        return 1.0 / (1.0 + math.exp(-z))
+
+
 def main():
     """命令行接口"""
     import argparse

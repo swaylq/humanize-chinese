@@ -736,18 +736,28 @@ def format_output(issues, metrics, score, sentences=None, as_json=False, score_o
 # ─── Main ───
 
 def main():
-    parser = argparse.ArgumentParser(description='中文 AI 文本检测 v2.0')
+    parser = argparse.ArgumentParser(description='中文 AI 文本检测 v3.0')
     parser.add_argument('file', nargs='?', help='输入文件路径（不指定则从 stdin 读取）')
     parser.add_argument('-j', '--json', action='store_true', help='JSON 输出')
     parser.add_argument('-s', '--score', action='store_true', help='仅输出分数')
     parser.add_argument('-v', '--verbose', action='store_true', help='详细模式（含逐句分析）')
     parser.add_argument('--sentences', type=int, default=5, help='显示最可疑的 N 个句子')
-    parser.add_argument('--lr', action='store_true',
-                        help='仅 LR ensemble 打分（诊断用）')
-    parser.add_argument('--rule-only', action='store_true',
-                        help='仅 rule+stat 打分（legacy 模式，忽略 LR 系数）')
     parser.add_argument('--scene', default='general', choices=['general', 'academic', 'novel', 'auto'],
                         help='LR 场景（academic 自动用 lr_coef_academic.json）')
+
+    # ── 检测模式 ──
+    parser.add_argument('--mode', default='fused',
+                        choices=['fused', 'lr', 'vipu', 'logistic', 'all'],
+                        help='''检测模式:
+  fused    (默认) 融合分 = 0.8×LR + 0.2×规则
+  lr       仅 LR ensemble 场景评分
+  vipu     仅规则+统计模式（原版维普风格）
+  logistic 新逻辑回归 v2 分类器 (13维特征, 零外部依赖)
+  all      列出 "规则|LR|Logistic" 三种分数横向比较
+''')
+    # 保留 --lr / --rule-only 向后兼容，内部映射到 --mode
+    parser.add_argument('--lr', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--rule-only', action='store_true', help=argparse.SUPPRESS)
 
     # Catch the common UX confusion (issue #6): users see `-o output.txt
     # --compare` documented for the rewriter and try them on the detector.
@@ -791,38 +801,101 @@ def main():
         print('错误: 输入为空', file=sys.stderr)
         sys.exit(1)
     
-    # Detect
+    # ── 向后兼容: --lr / --rule-only 映射到 --mode ──
+    if args.lr:
+        args.mode = 'lr'
+    elif args.rule_only:
+        args.mode = 'vipu'
+
+    # ── Detect ──
     issues, metrics = detect_patterns(text)
     rule_score = calculate_score(issues, metrics)
 
-    # Default mode: fused rule+LR (sway 2026-04-21 directive). Falls back to
-    # rule-only when LR coefs are missing, or when --rule-only is explicitly set.
-    # --lr gives the LR-only score for diagnostics.
+    # ── LR ensemble (可降级) ──
     try:
         from ngram_model import compute_lr_score
     except ImportError:
         from scripts.ngram_model import compute_lr_score
-    lr_result = None if args.rule_only else compute_lr_score(text, scene=args.scene)
+    lr_result = None if args.mode == 'vipu' else compute_lr_score(text, scene=args.scene)
 
-    if args.rule_only or lr_result is None:
-        score = rule_score
-    else:
+    # ── 逻辑回归 v2 (可降级) ──
+    try:
+        from linguistic_features import compute_logistic_score as _cls
+        logistic_result = _cls(text)
+    except Exception:
+        logistic_result = None
+
+    # ── 按模式组装分数 ──
+    score = rule_score
+    if args.mode == 'fused' and lr_result is not None:
+        score = round(0.2 * rule_score + 0.8 * lr_result['score'])
+        metrics['_fused'] = {'rule_stat': rule_score, 'lr': lr_result['score']}
         metrics['_lr'] = lr_result
-        if args.lr:
-            score = lr_result['score']
-        else:  # default: fused
-            score = round(0.2 * rule_score + 0.8 * lr_result['score'])
-            metrics['_fused'] = {'rule_stat': rule_score, 'lr': lr_result['score']}
-    
-    # Sentence analysis (verbose mode)
+    elif args.mode == 'lr' and lr_result is not None:
+        metrics['_lr'] = lr_result
+        score = lr_result['score']
+    elif args.mode == 'vipu':
+        pass  # score = rule_score (already set)
+    elif args.mode == 'logistic':
+        if logistic_result is not None:
+            score = round(logistic_result * 100)
+        else:
+            print('[warn] logistic 模型不可用，回退到 fused', file=sys.stderr)
+            if lr_result is not None:
+                score = round(0.2 * rule_score + 0.8 * lr_result['score'])
+    # mode == 'all': handled in output section below
+
+    # ── Sentence analysis (verbose/json 时附加) ──
     worst_sentences = None
     if args.verbose or args.json:
         worst_sentences = analyze_sentences(text, args.sentences)
-    
-    # Output
-    output = format_output(issues, metrics, score, worst_sentences,
-                          as_json=args.json, score_only=args.score, verbose=args.verbose)
-    print(output)
+
+    # ── Output ──
+    if args.mode == 'all':
+        # all 模式: 横向对比, 无论 --json / --verbose / --score
+        lr_score_str = str(lr_result['score']) if lr_result is not None else 'N/A'
+        log_score_str = f'{logistic_result*100:.1f}' if logistic_result is not None else 'N/A'
+        log_p_str = f'{logistic_result:.3f}' if logistic_result is not None else 'N/A'
+        lines = ['', '═══ 多模式横向对比 ═══', '']
+        lines.append(f'  规则分 (vipu):     {rule_score:>3d}/100')
+        lines.append(f'  LR ensemble 分:    {lr_score_str:>6s}/100')
+        lines.append(f'  Logistic v2 分:    {log_score_str:>6s}/100  (p(ai)={log_p_str})')
+        lines.append(f'  ─{"─"*40}')
+        fused = round(0.2 * rule_score + 0.8 * (lr_result['score'] if lr_result else rule_score))
+        lines.append(f'  融合分 (fused):    {fused:>3d}/100')
+        lines.append(f'  字数: {len(text)}')
+
+        # 各模式的判断结论
+        lines.append('')
+        def _judge(s): return '→ AI 文本' if s >= 50 else '→ 人类文本'
+        lines.append(f'  规则 VIPU     {_judge(rule_score)}')
+        if lr_result:
+            lines.append(f'  LR ensemble  {_judge(lr_result["score"])}')
+        if logistic_result is not None:
+            lines.append(f'  Logistic v2  {_judge(round(logistic_result * 100))}')
+        lines.append(f'  融合 fused    {_judge(fused)}')
+        lines.append('')
+        output = '\n'.join(lines)
+        print(output)
+    elif args.json:
+        # JSON mode: inject logistic if available
+        if logistic_result is not None:
+            metrics['_logistic'] = {
+                'p_ai': round(logistic_result, 4),
+                'score': round(logistic_result * 100),
+            }
+        output = format_output(issues, metrics, score, worst_sentences,
+                              as_json=True, score_only=args.score, verbose=args.verbose)
+        print(output)
+    else:
+        if logistic_result is not None:
+            metrics['_logistic'] = {
+                'p_ai': round(logistic_result, 4),
+                'score': round(logistic_result * 100),
+            }
+        output = format_output(issues, metrics, score, worst_sentences,
+                              as_json=False, score_only=args.score, verbose=args.verbose)
+        print(output)
 
 if __name__ == '__main__':
     main()

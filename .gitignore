@@ -7,6 +7,7 @@ evals/__pycache__/
 tests/__pycache__/
 scripts/_longwriter_cache/
 scripts/_mnbvc_multi_cache/
+scripts/_fdgpt_tmp/
 
 # ── 大型 N-gram 模型 (本地训练生成，不提交) ──
 scripts/ngram_freq_cn_human.json

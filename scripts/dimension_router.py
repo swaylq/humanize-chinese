@@ -618,9 +618,11 @@ def diagnose_scores(text):
 
     total_score = round(0.2 * rule_stat_total + 0.8 * lr_score)
 
-    # ── 维普对齐 8 维语言学特征 (Phase 1, try/except 降级) ──
-    # 通过 linguistic_features.diagnose_linguistic_features() 追加 8 维检测结果。
-    # 若 linguistic_features 或其依赖 (jieba / numpy) 不可用，静默降级，不影响原功能。
+    # ── 维普对齐 16 维语言学特征 (Phase 1) ──
+    # 通过 linguistic_features.diagnose_linguistic_features() 追加维普风格检测结果。
+    # 注意: dims 在第 541 行已被 DIMENSION_MAX_SCORES 所有 key 初始化（含这些特征名），
+    # 所以不能用 "_k not in dims" 判断——这个条件永远 False，导致所有维普特征值为 0。
+    # 我们直接用真实值覆写，并 clamp 到 max_score 防止归一化溢出。（#bugfix）
     try:
         from linguistic_features import diagnose_linguistic_features as _dlf
         _lf_result = _dlf(text)
@@ -634,11 +636,19 @@ def diagnose_scores(text):
             'ai_vocab_density', 'fingerprint_score', 'ai_vocab_count',
         ]
         for _k in _lf_keys:
-            if _k in _lf_result and _k not in dims:
-                dims[_k] = _lf_result[_k]
+            if _k in _lf_result:
+                _max_s = DIMENSION_MAX_SCORES.get(_k, 1.0)
+                dims[_k] = min(_max_s, _lf_result[_k])  # clamp to max_score
         _vipu_score = _lf_result.get('_vipu_aligned_score', 0.0)
     except Exception:
         _vipu_score = 0.0
+
+    # ── 逻辑回归 v2 概率 (从 linguistic_features 共享函数) ──
+    try:
+        from linguistic_features import compute_logistic_score
+        _logistic_score = compute_logistic_score(text)
+    except Exception:
+        _logistic_score = None
 
     return {
         'dims': dims,
@@ -649,6 +659,7 @@ def diagnose_scores(text):
         'total_score': total_score,
         'char_count': char_count,
         '_vipu_aligned_score': _vipu_score,
+        'logistic_score': _logistic_score,     # p(ai) 0~1 or None
     }
 
 
