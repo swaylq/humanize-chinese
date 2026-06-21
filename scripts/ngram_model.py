@@ -16,7 +16,7 @@ import re
 from math import log2, exp
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-FREQ_FILE = os.path.join(SCRIPT_DIR, 'ngram_freq_cn.json')
+FREQ_FILE = os.path.join(SCRIPT_DIR, 'weights', 'ngram_freq_cn.json')
 
 # ─── Frequency Table Loading ───
 
@@ -1414,9 +1414,9 @@ LR_FEATURE_NAMES = (
 
 
 _LR_COEF_CACHE = {}
-_LR_COEF_FILE = os.path.join(SCRIPT_DIR, 'lr_coef_cn.json')
-_LR_COEF_ACADEMIC_FILE = os.path.join(SCRIPT_DIR, 'lr_coef_academic.json')
-_LR_COEF_LONGFORM_FILE = os.path.join(SCRIPT_DIR, 'lr_coef_longform.json')
+_LR_COEF_FILE = os.path.join(SCRIPT_DIR, 'weights', 'lr_coef_cn.json')
+_LR_COEF_ACADEMIC_FILE = os.path.join(SCRIPT_DIR, 'weights', 'lr_coef_academic.json')
+_LR_COEF_LONGFORM_FILE = os.path.join(SCRIPT_DIR, 'weights', 'lr_coef_longform.json')
 
 
 def _load_lr_coef(path=None, scene='general'):

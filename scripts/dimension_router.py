@@ -18,6 +18,13 @@ REWRITE_OPS = [
     'deep_restructure',
     'noise_injection',
     'sentence_len_randomize',
+    # 维普对齐新操作 (Phase 2, 通过 rewrite_operations 模块实现)
+    'burstiness_engineering',
+    'fragment_injection',
+    'syntax_pattern_break',
+    'info_density_rebalance',
+    'punctuation_humanize',
+    'ai_vocab_scrub',
 ]
 
 # ──────────────────────────────────────────────
@@ -41,6 +48,25 @@ OP_PARAM_RANGES = {
     'sentence_len_randomize': {
         'merge_rate': (0.0, 0.25),
         'truncate_rate': (0.0, 0.25),
+    },
+    # 维普对齐新操作参数范围
+    'burstiness_engineering': {
+        'intensity': (0.0, 0.8),
+    },
+    'fragment_injection': {
+        'intensity': (0.0, 0.5),
+    },
+    'syntax_pattern_break': {
+        'intensity': (0.0, 0.6),
+    },
+    'info_density_rebalance': {
+        'intensity': (0.0, 0.6),
+    },
+    'punctuation_humanize': {
+        'intensity': (0.0, 0.4),
+    },
+    'ai_vocab_scrub': {
+        'intensity': (0.0, 0.8),
     },
 }
 
@@ -66,6 +92,23 @@ DIMENSION_MAX_SCORES = {
     'perplexity': 10,
     'transition_density': 8,
     'emotional_flatness': 4,
+    # 维普对齐 8 维语言学特征 (Phase 1)
+    'syntax_similarity': 1.0,
+    'pattern_repetition': 1.0,
+    'mdd_mean': 10.0,
+    'coherence_variance': 0.1,
+    'coherence_mean': 1.0,
+    'ttr_global': 1.0,
+    'ttr_variance': 0.1,
+    'lexical_entropy': 8.0,
+    'comma_period_ratio': 5.0,
+    'punctuation_variance': 1.0,
+    'density_variance': 0.01,
+    'density_mean': 1.0,
+    'semantic_jump_std': 0.3,
+    'ai_vocab_density': 20.0,
+    'fingerprint_score': 1.0,
+    'ai_vocab_count': 20.0,
 }
 
 # ──────────────────────────────────────────────
@@ -158,6 +201,195 @@ REWRITE_IMPACT_MAP = {
         'transition_density': 0.0,
         'emotional_flatness': 0.0,
     },
+    # ── 维普对齐新操作 (Phase 2) ──
+    'burstiness_engineering': {
+        # 现有维度
+        'uniform_sentence_rhythm': 0.80,
+        'sent_len_cv': 0.85,
+        'short_frac': 0.75,
+        # 新维度
+        'syntax_similarity': 0.0,
+        'pattern_repetition': 0.0,
+        'mdd_mean': 0.0,
+        'coherence_variance': 0.0,
+        'coherence_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'comma_period_ratio': 0.0,
+        'punctuation_variance': 0.0,
+        'density_variance': 0.0,
+        'density_mean': 0.0,
+        'semantic_jump_std': 0.0,
+        'ai_vocab_density': 0.0,
+        'fingerprint_score': 0.0,
+        'ai_vocab_count': 0.0,
+    },
+    'fragment_injection': {
+        # 现有维度
+        'short_frac': 0.60,
+        # 新维度
+        'coherence_variance': 0.70,
+        'coherence_mean': 0.0,
+        'density_variance': 0.60,
+        'punctuation_variance': 0.50,
+        'comma_period_ratio': 0.0,
+        'syntax_similarity': 0.0,
+        'pattern_repetition': 0.0,
+        'mdd_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'density_mean': 0.0,
+        'semantic_jump_std': 0.0,
+        'ai_vocab_density': 0.0,
+        'fingerprint_score': 0.0,
+        'ai_vocab_count': 0.0,
+    },
+    'syntax_pattern_break': {
+        # 新维度
+        'syntax_similarity': 0.85,
+        'pattern_repetition': 0.80,
+        # 现有维度
+        'uniform_sentence_rhythm': 0.30,
+        'sent_len_cv': 0.0,
+        'short_frac': 0.0,
+        'comma_density_low': 0.0,
+        'perplexity': 0.0,
+        'transition_density': 0.0,
+        'emotional_flatness': 0.0,
+        'mechanical_connectors': 0.0,
+        'empty_grand_words': 0.0,
+        'ai_high_freq_words': 0.0,
+        'filler_phrases': 0.0,
+        'three_part_structure': 0.0,
+        'semicolon_overuse': 0.0,
+        'dash_overuse': 0.0,
+        'paragraph_uniform_len': 0.0,
+        # 其余新维度
+        'mdd_mean': 0.0,
+        'coherence_variance': 0.0,
+        'coherence_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'comma_period_ratio': 0.0,
+        'punctuation_variance': 0.0,
+        'density_variance': 0.0,
+        'density_mean': 0.0,
+        'semantic_jump_std': 0.0,
+        'ai_vocab_density': 0.0,
+        'fingerprint_score': 0.0,
+        'ai_vocab_count': 0.0,
+    },
+    'info_density_rebalance': {
+        # 新维度
+        'coherence_variance': 0.80,
+        'density_variance': 0.85,
+        'density_mean': 0.0,
+        # 现有维度
+        'paragraph_uniform_len': 0.75,
+        'uniform_sentence_rhythm': 0.0,
+        'sent_len_cv': 0.0,
+        'short_frac': 0.0,
+        'comma_density_low': 0.0,
+        'perplexity': 0.0,
+        'transition_density': 0.0,
+        'emotional_flatness': 0.0,
+        'mechanical_connectors': 0.0,
+        'empty_grand_words': 0.0,
+        'ai_high_freq_words': 0.0,
+        'filler_phrases': 0.0,
+        'three_part_structure': 0.0,
+        'semicolon_overuse': 0.0,
+        'dash_overuse': 0.0,
+        # 其余新维度
+        'syntax_similarity': 0.0,
+        'pattern_repetition': 0.0,
+        'mdd_mean': 0.0,
+        'coherence_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'comma_period_ratio': 0.0,
+        'punctuation_variance': 0.0,
+        'semantic_jump_std': 0.0,
+        'ai_vocab_density': 0.0,
+        'fingerprint_score': 0.0,
+        'ai_vocab_count': 0.0,
+    },
+    'punctuation_humanize': {
+        # 新维度
+        'comma_period_ratio': 0.90,
+        'punctuation_variance': 0.80,
+        # 现有维度
+        'comma_density_low': 0.70,
+        'uniform_sentence_rhythm': 0.0,
+        'sent_len_cv': 0.0,
+        'short_frac': 0.0,
+        'perplexity': 0.0,
+        'transition_density': 0.0,
+        'emotional_flatness': 0.0,
+        'mechanical_connectors': 0.0,
+        'empty_grand_words': 0.0,
+        'ai_high_freq_words': 0.0,
+        'filler_phrases': 0.0,
+        'three_part_structure': 0.0,
+        'semicolon_overuse': 0.0,
+        'dash_overuse': 0.0,
+        'paragraph_uniform_len': 0.0,
+        # 其余新维度
+        'syntax_similarity': 0.0,
+        'pattern_repetition': 0.0,
+        'mdd_mean': 0.0,
+        'coherence_variance': 0.0,
+        'coherence_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'density_variance': 0.0,
+        'density_mean': 0.0,
+        'semantic_jump_std': 0.0,
+        'ai_vocab_density': 0.0,
+        'fingerprint_score': 0.0,
+        'ai_vocab_count': 0.0,
+    },
+    'ai_vocab_scrub': {
+        # 新维度
+        'fingerprint_score': 0.85,
+        'ai_vocab_density': 0.80,
+        'ai_vocab_count': 0.80,
+        # 现有维度
+        'mechanical_connectors': 0.80,
+        'empty_grand_words': 0.80,
+        'ai_high_freq_words': 0.80,
+        'filler_phrases': 0.0,
+        'three_part_structure': 0.0,
+        'semicolon_overuse': 0.0,
+        'dash_overuse': 0.0,
+        'paragraph_uniform_len': 0.0,
+        'uniform_sentence_rhythm': 0.0,
+        'sent_len_cv': 0.0,
+        'short_frac': 0.0,
+        'comma_density_low': 0.0,
+        'perplexity': 0.0,
+        'transition_density': 0.0,
+        'emotional_flatness': 0.0,
+        # 其余新维度
+        'syntax_similarity': 0.0,
+        'pattern_repetition': 0.0,
+        'mdd_mean': 0.0,
+        'coherence_variance': 0.0,
+        'coherence_mean': 0.0,
+        'ttr_global': 0.0,
+        'ttr_variance': 0.0,
+        'lexical_entropy': 0.0,
+        'comma_period_ratio': 0.0,
+        'punctuation_variance': 0.0,
+        'density_variance': 0.0,
+        'density_mean': 0.0,
+        'semantic_jump_std': 0.0,
+    },
 }
 
 # ──────────────────────────────────────────────
@@ -202,7 +434,7 @@ def load_weights(weights_path=None):
     if weights_path is None:
         weights_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            'dimension_weights.json',
+            'weights', 'dimension_weights.json',
         )
 
     try:
@@ -386,6 +618,28 @@ def diagnose_scores(text):
 
     total_score = round(0.2 * rule_stat_total + 0.8 * lr_score)
 
+    # ── 维普对齐 8 维语言学特征 (Phase 1, try/except 降级) ──
+    # 通过 linguistic_features.diagnose_linguistic_features() 追加 8 维检测结果。
+    # 若 linguistic_features 或其依赖 (jieba / numpy) 不可用，静默降级，不影响原功能。
+    try:
+        from linguistic_features import diagnose_linguistic_features as _dlf
+        _lf_result = _dlf(text)
+        _lf_keys = [
+            'syntax_similarity', 'pattern_repetition', 'mdd_mean',
+            'coherence_variance', 'coherence_mean',
+            'ttr_global', 'ttr_variance', 'lexical_entropy',
+            'comma_period_ratio', 'punctuation_variance',
+            'density_variance', 'density_mean',
+            'semantic_jump_std',
+            'ai_vocab_density', 'fingerprint_score', 'ai_vocab_count',
+        ]
+        for _k in _lf_keys:
+            if _k in _lf_result and _k not in dims:
+                dims[_k] = _lf_result[_k]
+        _vipu_score = _lf_result.get('_vipu_aligned_score', 0.0)
+    except Exception:
+        _vipu_score = 0.0
+
     return {
         'dims': dims,
         'rule_score': rule_score,
@@ -394,6 +648,7 @@ def diagnose_scores(text):
         'lr_score': lr_score,
         'total_score': total_score,
         'char_count': char_count,
+        '_vipu_aligned_score': _vipu_score,
     }
 
 
@@ -547,5 +802,46 @@ if __name__ == '__main__':
     weights = load_weights()
     print(f"  加载成功，共 {len(weights)} 个操作的权重映射")
     assert set(weights.keys()) == set(REWRITE_OPS), "操作数量不匹配"
+
+    # 测试 diagnose_scores（含 linguistic_features 集成）
+    print("\n[diagnose_scores 集成测试]")
+    test_text = (
+        "首先，人工智能技术在现代社会中发挥着越来越重要的作用。"
+        "其次，随着大数据技术的不断发展，人工智能在各个领域的应用日益广泛。"
+        "最后，综上所述，人工智能的发展前景十分广阔。"
+        "值得注意的是，我们还需要关注人工智能发展过程中的伦理问题。"
+        "总而言之，人工智能技术将在未来社会中扮演更加重要的角色。"
+    )
+    try:
+        dr = diagnose_scores(test_text)
+        print(f"  规则层分数: {dr['rule_score']:.1f}")
+        print(f"  统计层分数: {dr['stat_score']:.1f}")
+        print(f"  LR 模型分: {dr['lr_score']:.1f}")
+        print(f"  总分: {dr['total_score']}")
+        print(f"  中文字符数: {dr['char_count']}")
+        print(f"  维普对齐 AIGC 风险分: {dr.get('_vipu_aligned_score', 'N/A')}")
+        lf_dims_present = [k for k in ['syntax_similarity', 'coherence_variance', 'ttr_global',
+                                        'comma_period_ratio', 'density_variance', 'fingerprint_score']
+                           if k in dr.get('dims', {})]
+        print(f"  语言学特征维度已集成: {len(lf_dims_present)}/{len(lf_dims_present)}")
+        for d in lf_dims_present:
+            print(f"    {d}: {dr['dims'][d]}")
+    except Exception as e:
+        print(f"  diagnose_scores 集成异常 (可忽略): {e}")
+
+    # 测试 route_strategy（含新操作）
+    print("\n[route_strategy 集成测试]")
+    if lf_dims_present:
+        try:
+            route = route_strategy(dr['dims'], tier='moderate')
+            all_ops = route.get('ops', {})
+            new_ops_present = [op for op in REWRITE_OPS if op in all_ops]
+            print(f"  路由成功，共 {len(new_ops_present)}/{len(REWRITE_OPS)} 个操作已路由:")
+            for op in ['burstiness_engineering', 'syntax_pattern_break', 'ai_vocab_scrub']:
+                if op in all_ops:
+                    print(f"    {op}: {all_ops[op]}")
+            print(f"  问题维度数: {len(route.get('problem_dims', []))}")
+        except Exception as e:
+            print(f"  route_strategy 集成异常 (可忽略): {e}")
 
     print("\n✓ 自测通过")

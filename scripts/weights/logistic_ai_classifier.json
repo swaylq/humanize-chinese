@@ -1,0 +1,155 @@
+{
+  "model_type": "logistic_regression",
+  "version": "1.0",
+  "description": "AI 文本检测二分类器, 13 维语言学特征 -> P(AI)",
+  "feature_names": [
+    "syntax_similarity",
+    "mdd_mean",
+    "coherence_mean",
+    "coherence_variance",
+    "ttr_global",
+    "ttr_variance",
+    "lexical_entropy",
+    "comma_period_ratio",
+    "punctuation_variance",
+    "density_variance",
+    "semantic_jump_std",
+    "ai_vocab_density",
+    "fingerprint_score"
+  ],
+  "means": [
+    0.028202,
+    3.921377,
+    0.181968,
+    0.017804,
+    0.516552,
+    0.005538,
+    7.023473,
+    1.920032,
+    0.458784,
+    0.00853,
+    0.109449,
+    8.564684,
+    0.455451
+  ],
+  "stds": [
+    0.018329,
+    0.522918,
+    0.210195,
+    0.023178,
+    0.181982,
+    0.006994,
+    1.011763,
+    0.691119,
+    0.226774,
+    0.012724,
+    0.046208,
+    10.358448,
+    0.304867
+  ],
+  "weights": [
+    -0.034981,
+    -0.182354,
+    0.174015,
+    1.322427,
+    0.088203,
+    -0.397445,
+    0.747592,
+    -0.981183,
+    -1.027245,
+    -1.480888,
+    -0.444659,
+    0.430994,
+    0.216249
+  ],
+  "bias": 0.98632,
+  "threshold": 0.5,
+  "inference": {
+    "formula": "score = bias + sum(weights[i] * (x[i] - means[i]) / stds[i])",
+    "probability": "p_ai = 1 / (1 + exp(-score))",
+    "score_0_100": "vipu_score = p_ai * 100",
+    "python_example": "\nimport json, math\nwith open('logistic_ai_classifier.json') as f:\n    m = json.load(f)\ndef classify(features):\n    score = m['bias']\n    for i, name in enumerate(m['feature_names']):\n        x = features.get(name, 0.0)\n        if m['stds'][i] > 1e-10:\n            score += m['weights'][i] * (x - m['means'][i]) / m['stds'][i]\n    p_ai = 1 / (1 + math.exp(-score))\n    return {'p_ai': p_ai, 'score_0_100': p_ai * 100}\n"
+  },
+  "metrics": {
+    "n_samples": 185,
+    "n_ai": 125,
+    "n_human": 60,
+    "train_accuracy": 0.8973,
+    "train_auc": 0.9389,
+    "train_pair_win_rate": 0.9389,
+    "train_ai_mean_score": 0.8588,
+    "train_human_mean_score": 0.2941,
+    "loo_cv_accuracy": 0.8703,
+    "loo_cv_auc": 0.8956,
+    "loo_cv_pair_win_rate": 0.8956,
+    "loo_cv_ai_mean_score": 0.8443,
+    "loo_cv_human_mean_score": 0.3237
+  },
+  "feature_importance": [
+    {
+      "feature": "density_variance",
+      "weight": -1.4809,
+      "abs_weight": 1.4809
+    },
+    {
+      "feature": "coherence_variance",
+      "weight": 1.3224,
+      "abs_weight": 1.3224
+    },
+    {
+      "feature": "punctuation_variance",
+      "weight": -1.0272,
+      "abs_weight": 1.0272
+    },
+    {
+      "feature": "comma_period_ratio",
+      "weight": -0.9812,
+      "abs_weight": 0.9812
+    },
+    {
+      "feature": "lexical_entropy",
+      "weight": 0.7476,
+      "abs_weight": 0.7476
+    },
+    {
+      "feature": "semantic_jump_std",
+      "weight": -0.4447,
+      "abs_weight": 0.4447
+    },
+    {
+      "feature": "ai_vocab_density",
+      "weight": 0.431,
+      "abs_weight": 0.431
+    },
+    {
+      "feature": "ttr_variance",
+      "weight": -0.3974,
+      "abs_weight": 0.3974
+    },
+    {
+      "feature": "fingerprint_score",
+      "weight": 0.2162,
+      "abs_weight": 0.2162
+    },
+    {
+      "feature": "mdd_mean",
+      "weight": -0.1824,
+      "abs_weight": 0.1824
+    },
+    {
+      "feature": "coherence_mean",
+      "weight": 0.174,
+      "abs_weight": 0.174
+    },
+    {
+      "feature": "ttr_global",
+      "weight": 0.0882,
+      "abs_weight": 0.0882
+    },
+    {
+      "feature": "syntax_similarity",
+      "weight": -0.035,
+      "abs_weight": 0.035
+    }
+  ]
+}

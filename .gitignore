@@ -52,3 +52,48 @@ scripts/showcase_v2_cache.json
 humanize-chinese-dimension\scripts\PR_REPORT.md
 # ── 用户手动执行的脚本 (不参与提交) ──
 scripts/run_showcase_v2.ps1
+
+# ── 探测 / 校准 / 实验脚本 (本地开发用) ──
+scripts/probe_*.py
+scripts/ablation_*.py
+scripts/*_bench*.py
+scripts/*_bench*results*.json
+scripts/detection_bench_analysis.py
+scripts/semantic_check.py
+scripts/feature_diagnostics.py
+scripts/recompute_features.py
+scripts/final_calibration_report.py
+scripts/vipu_weight_regression.py
+scripts/qwen3b_calibration.py
+scripts/qwen3b_regression.py
+scripts/logistic_classifier.py
+scripts/logistic_classifier_v2.py
+scripts/mnbvc_extract.py
+scripts/mnbvc_multi_extract.py
+scripts/mnbvc_probe.py
+scripts/longwriter_extract.py
+scripts/longwriter_probe.py
+scripts/fdgpt_score_bench.py
+scripts/fdgpt_full_bench.py
+
+# ── 实验数据 / 结果 ──
+scripts/_longwriter_cache/
+scripts/_mnbvc_multi_cache/
+scripts/*.md
+scripts/*_results.json
+scripts/*scored_results.json
+scripts/*calibration_data.json
+scripts/*human_long*.json
+scripts/*ai_long.json
+scripts/longwriter_ai_long.json
+scripts/mnbvc_human_long.json
+scripts/mnbvc_human_long_multi.json
+scripts/qwen3b_calibration_data.json
+scripts/PR_description.md
+scripts/git_diff_report.md
+
+# ── 测试文件 (已移入 tests/) ──
+scripts/test_*.py
+tests/test_integration.py
+tests/test_linguistic_features.py
+tests/test_rewrite_operations.py

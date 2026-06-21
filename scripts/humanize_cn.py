@@ -70,9 +70,119 @@ try:
 except ImportError:
     _HAS_DIMENSION_ROUTER = False
 
+# rewrite_operations — 维普对齐 6 个新改写操作 (Phase 2, try/except 降级)
+# 注: rewrite_operations v2 已移除 jieba 依赖, 全部操作纯零依赖
+try:
+    from rewrite_operations import (
+        burstiness_engineering,
+        fragment_injection,
+        syntax_pattern_break,
+        info_density_rebalance,
+        punctuation_humanize,
+        ai_vocab_scrub,
+    )
+    _HAS_REWRITE_OPS = True
+except ImportError:
+    _HAS_REWRITE_OPS = False
+
+
+def _check_deps_detailed():
+    """检查 --adaptive 所需的所有可选依赖，返回状态字典。"""
+    deps = {
+        'jieba': False,
+        'jieba_posseg': False,
+        'numpy': False,
+        'linguistic_features': False,
+        'rewrite_operations': False,
+    }
+    try:
+        import jieba
+        deps['jieba'] = True
+        try:
+            import jieba.posseg as pseg
+            deps['jieba_posseg'] = True
+        except ImportError:
+            pass
+    except ImportError:
+        pass
+    try:
+        import numpy
+        deps['numpy'] = True
+    except ImportError:
+        pass
+    try:
+        from linguistic_features import diagnose_linguistic_features
+        deps['linguistic_features'] = True
+    except ImportError:
+        pass
+    try:
+        from rewrite_operations import burstiness_engineering
+        deps['rewrite_operations'] = True
+    except ImportError:
+        pass
+    return deps
+
+
+_WARNED_ADAPTIVE_DEPS = False
+
+
+def _check_adaptive_deps_and_warn():
+    """首次使用 --adaptive 时检查依赖并输出友好提示 (stderr, 仅一次)"""
+    global _WARNED_ADAPTIVE_DEPS
+    if _WARNED_ADAPTIVE_DEPS:
+        return
+    _WARNED_ADAPTIVE_DEPS = True
+
+    deps = _check_deps_detailed()
+
+    # 改写端 (rewrite_operations v2) 已纯零依赖, 6/6 操作不受外部库影响
+    # 仅检测端 (linguistic_features) 需要 jieba/numpy 做精确统计
+    detect_missing = []
+    if not deps['jieba'] or not deps['jieba_posseg']:
+        detect_missing.append('jieba')
+    if not deps['numpy']:
+        detect_missing.append('numpy')
+
+    if detect_missing:
+        print('', file=sys.stderr)
+        print('[humanize --adaptive] 提示:', file=sys.stderr)
+        print(f'  检测端可选依赖缺失: {", ".join(detect_missing)}', file=sys.stderr)
+        print('  改写端 6/6 操作全部纯零依赖, 不受影响。', file=sys.stderr)
+        print('  检测端 (linguistic_features) 会降级, _vipu_aligned_score 精度下降:', file=sys.stderr)
+        print('    - 无 jieba: 6/8 维度返回默认值, AUC 从 0.59 降至 0.41', file=sys.stderr)
+        print('    - 无 numpy: 统计计算走 Python 原生 fallback', file=sys.stderr)
+        print('  如需检测端最佳精度: pip install jieba numpy', file=sys.stderr)
+        print('  如只需改写效果: 无需安装任何外部依赖。', file=sys.stderr)
+        print('', file=sys.stderr)
+        sys.stderr.flush()
+
+
+def _print_dependency_status():
+    """--adaptive-deps: 打印完整依赖状态到 stdout"""
+    deps = _check_deps_detailed()
+    print('--adaptive 依赖状态检查')
+    print('=' * 40)
+    for name, ok in deps.items():
+        emoji = '✅' if ok else '❌'
+        print(f'  {emoji} {name}')
+    all_core = deps['linguistic_features'] and deps['rewrite_operations']
+    print()
+    if all_core:
+        jieba_ok = deps['jieba'] and deps['jieba_posseg']
+        if jieba_ok and deps['numpy']:
+            print('全部依赖就绪: 改写 6/6 + 检测端完整 (AUC≈0.59)')
+        elif jieba_ok:
+            print('jieba 已装, numpy 缺失: 改写 6/6 不受影响, 检测端走 numpy fallback')
+        else:
+            print('jieba 缺失: 改写 6/6 不受影响, 检测端降级 (AUC≈0.41, 仅作参考)')
+            print('  安装建议: pip install jieba numpy')
+    else:
+        print('核心模块缺失, --adaptive 将回退到 Baseline 行为')
+
+
 # Module-level flag: whether to use stats optimization (can be toggled by CLI)
 _USE_STATS = True
-PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
+PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'weights', 'patterns_cn.json')
 
 def load_config():
     if os.path.exists(PATTERNS_FILE):
@@ -3488,7 +3598,7 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         for i in range(best_of_n):
             s = base_seed + i
             out = humanize(text, scene=scene, aggressive=aggressive,
-                           seed=s, best_of_n=None, style=style)
+                           seed=s, best_of_n=None, style=style, adaptive=adaptive)
             lr_scene = _pick_lr_scene(out)
             if lr_scene == 'longform':
                 out = _apply_longform_mutation_profile(
@@ -3713,6 +3823,74 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         text = re.sub(r'\u5c24\u4e3a', '', text)
         text = re.sub(r'\u9887\u4e3a', '', text)
 
+    # ── Pass 5: 维普对齐新改写操作 (Phase 2, try/except 降级集成) ──
+    # 6 个新操作: burstiness_engineering, fragment_injection, syntax_pattern_break,
+    # info_density_rebalance, punctuation_humanize, ai_vocab_scrub
+    # adaptive=True 时启用新操作并用 route 参数；adaptive=False 时跳过新操作 (保持原行为)
+    if _HAS_REWRITE_OPS and adaptive:
+        # adaptive 模式: 强制启用所有新操作，至少 0.3 强度
+        _ro_defaults = {
+            'burstiness_engineering': 0.5,
+            'fragment_injection': 0.3,
+            'syntax_pattern_break': 0.4,
+            'info_density_rebalance': 0.3,
+            'punctuation_humanize': 0.4,
+            'ai_vocab_scrub': 0.6,
+        }
+        # 从 route 获取参数 (若可用)，但强制不低于 0.3 以确保有改写效果
+        _ro_params = {}
+        if route and 'ops' in route:
+            for _op_name in _ro_defaults:
+                _op_cfg = route['ops'].get(_op_name, {})
+                _route_val = _op_cfg.get('intensity', 0.0)
+                # 取 route 值和默认值的较大者，确保至少有默认强度
+                _ro_params[_op_name] = max(_route_val, _ro_defaults[_op_name])
+        else:
+            _ro_params = dict(_ro_defaults)
+
+        # 应用改写操作 (按顺序: 句式 → 密度 → 突发性 → 碎片 → 标点 → 词汇)
+        # 1. 句式模式打破 (纯字符串规则, 无外部依赖)
+        if _ro_params.get('syntax_pattern_break', 0) > 0:
+            try:
+                text = syntax_pattern_break(text, intensity=_ro_params['syntax_pattern_break'], seed=seed)
+            except Exception:
+                pass
+
+        # 2. 信息密度再平衡
+        if _ro_params.get('info_density_rebalance', 0) > 0:
+            try:
+                text = info_density_rebalance(text, intensity=_ro_params['info_density_rebalance'], seed=seed)
+            except Exception:
+                pass
+
+        # 3. 突发性工程
+        if _ro_params.get('burstiness_engineering', 0) > 0:
+            try:
+                text = burstiness_engineering(text, intensity=_ro_params['burstiness_engineering'], seed=seed)
+            except Exception:
+                pass
+
+        # 4. 碎片注入
+        if _ro_params.get('fragment_injection', 0) > 0:
+            try:
+                text = fragment_injection(text, intensity=_ro_params['fragment_injection'], seed=seed)
+            except Exception:
+                pass
+
+        # 5. 标点人性化
+        if _ro_params.get('punctuation_humanize', 0) > 0:
+            try:
+                text = punctuation_humanize(text, intensity=_ro_params['punctuation_humanize'], seed=seed)
+            except Exception:
+                pass
+
+        # 6. AI 词汇指纹清除
+        if _ro_params.get('ai_vocab_scrub', 0) > 0:
+            try:
+                text = ai_vocab_scrub(text, intensity=_ro_params['ai_vocab_scrub'], seed=seed)
+            except Exception:
+                pass
+
     # Clean up artifacts
     text = re.sub(r'[，,]{2,}', '，', text)  # Remove double commas
     text = re.sub(r'[。]{2,}', '。', text)    # Remove double periods
@@ -3797,9 +3975,21 @@ def main():
     parser.add_argument('--cilin', action='store_true',
                        help='用 CiLin 同义词词林扩展候选（~40K 词 vs 手工 200 词）')
     parser.add_argument('--adaptive', action='store_true',
-                        help='启用维度感知策略路由 (根据各维度AI得分定向分配改写强度)')
+                        help='启用维度感知策略路由 (根据各维度AI得分定向分配改写强度)。'
+                             '建议 pip install jieba numpy 获得检测端最佳效果; 改写端零依赖不受影响。')
+    parser.add_argument('--adaptive-deps', action='store_true',
+                        help='仅检测 --adaptive 所需依赖状态，不执行改写')
 
     args = parser.parse_args()
+
+    # --adaptive-deps: 仅检测依赖状态
+    if getattr(args, 'adaptive_deps', False):
+        _print_dependency_status()
+        sys.exit(0)
+
+    # --adaptive 时首次检查依赖并友好提示 (写入 stderr 不干扰管道输出)
+    if args.adaptive:
+        _check_adaptive_deps_and_warn()
 
     # Toggle stats optimization
     global _USE_STATS

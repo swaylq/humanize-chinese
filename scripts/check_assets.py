@@ -16,12 +16,12 @@ ROOT = os.path.dirname(SCRIPT_DIR)
 
 
 CORE_ASSETS = (
-    ('scripts/ngram_freq_cn.json', 50_000, 'primary char 3-gram; detect/rewrite baseline perplexity'),
-    ('scripts/patterns_cn.json', 10_000, 'rule patterns and rewrite replacements'),
-    ('scripts/lr_coef_cn.json', 500, 'general LR scorer'),
-    ('scripts/lr_coef_academic.json', 500, 'academic LR scorer'),
-    ('scripts/lr_coef_longform.json', 500, 'longform LR scorer'),
-    ('scripts/ngram_freq_cn_human_holdout.json', 1_000, 'HC3 human holdout split metadata'),
+    ('scripts/weights/ngram_freq_cn.json', 50_000, 'primary char 3-gram; detect/rewrite baseline perplexity'),
+    ('scripts/weights/patterns_cn.json', 10_000, 'rule patterns and rewrite replacements'),
+    ('scripts/weights/lr_coef_cn.json', 500, 'general LR scorer'),
+    ('scripts/weights/lr_coef_academic.json', 500, 'academic LR scorer'),
+    ('scripts/weights/lr_coef_longform.json', 500, 'longform LR scorer'),
+    ('scripts/weights/ngram_freq_cn_human_holdout.json', 1_000, 'HC3 human holdout split metadata'),
 )
 
 OPTIONAL_ASSETS = (

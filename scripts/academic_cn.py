@@ -53,7 +53,7 @@ def _compute_general_score(text):
     return g_score, g_issues, g_metrics
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
+PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'weights', 'patterns_cn.json')
 
 
 def load_config():

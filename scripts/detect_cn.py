@@ -29,7 +29,7 @@ except ImportError:
 
 # Load patterns from JSON config
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
+PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'weights', 'patterns_cn.json')
 
 def load_patterns():
     """Load patterns from external config, fall back to built-in"""
