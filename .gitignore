@@ -91,9 +91,18 @@ scripts/mnbvc_human_long_multi.json
 scripts/qwen3b_calibration_data.json
 scripts/PR_description.md
 scripts/git_diff_report.md
+scripts/fdgpt_full_results_qwen3b.json
 
 # ── 测试文件 (已移入 tests/) ──
 scripts/test_*.py
-tests/test_integration.py
-tests/test_linguistic_features.py
-tests/test_rewrite_operations.py
+tests/
+
+# ── 文档 (非用户面向) ──
+docs/
+
+# ── 评测/基准脚本 (本地开发用) ──
+evals/
+
+# ── 模型重训脚本 (非用户面向, 仅开发者用) ──
+scripts/train_lr_*.py
+scripts/train_ngram_*.py
