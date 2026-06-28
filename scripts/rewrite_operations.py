@@ -26,6 +26,72 @@ rewrite_operations.py — 维普对齐的 6 个新改写操作
 import re
 import random
 import math
+import os
+import json
+
+
+# ============================================================================
+# 术语保护层: 语境感知碎片插入的分类词表 (Phase 1)
+# ============================================================================
+# 从 scripts/weights/fragments_by_relation.json 加载分类碎片词表.
+# 学术支撑: PDTB-style Chinese (Zhou & Xue, ACL 2012) + RST Chinese (Peng et al. 2022)
+#           + Chinese DM sentiment polarity (Huang et al. 2014) + Lakoff hedge
+# 7 类: hedge / comment_neutral / comment_surprise / comment_positive /
+#       comment_negative / comment_termination / contrast
+# 加载失败时 fallback 到内置默认词表 (与旧 _FRAGMENTS 等价但已分类).
+
+_FRAGMENTS_FALLBACK = {
+    'hedge': [
+        '未必如此。', '也难讲。', '不一定。', '看情况。', '难说。',
+        '未必。', '不好说。', '说不准。',
+    ],
+    'comment_neutral': [
+        '看起来是这样。', '有这个说法。', '也是。', '也正常。',
+    ],
+    'comment_surprise': [
+        '也是奇怪。', '说来也怪。', '怪了。',
+    ],
+    'comment_positive': [
+        '颇有看点。', '势头不错。', '成效不小。', '影响不小。',
+        '前景看好。', '空间不小。',
+    ],
+    'comment_negative': [
+        '没什么大不了的。', '算了。', '无所谓了。', '就这样吧。',
+    ],
+    'comment_termination': [
+        '就这样。', '到此为止。', '说完了。',
+    ],
+    'contrast': [
+        '其实不然。', '话又说回来。', '换个角度看。',
+    ],
+}
+
+_FRAGMENTS_CACHE = None
+
+
+def _load_fragments_by_relation():
+    """加载分类碎片词表, 带缓存. 失败时返回 fallback."""
+    global _FRAGMENTS_CACHE
+    if _FRAGMENTS_CACHE is not None:
+        return _FRAGMENTS_CACHE
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'weights', 'fragments_by_relation.json'
+    )
+    if os.path.isfile(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            # 过滤 _meta 等非词表字段
+            _FRAGMENTS_CACHE = {
+                k: v for k, v in data.items()
+                if k != '_meta' and isinstance(v, list)
+            }
+            return _FRAGMENTS_CACHE
+        except Exception:
+            pass
+    _FRAGMENTS_CACHE = dict(_FRAGMENTS_FALLBACK)
+    return _FRAGMENTS_CACHE
 
 
 # ============================================================================
@@ -66,12 +132,225 @@ def _count_cn(s):
 # 操作 1: burstiness_engineering (突发性工程)
 # ============================================================================
 
+# ── 旧 _FRAGMENTS 单列表已废弃, 改为分类词表 _load_fragments_by_relation() ──
+# 保留 _FRAGMENTS 名字做向后兼容 (扁平化为单列表), 但新代码应用 _load_fragments_by_relation
 _FRAGMENTS = [
-    "真的。", "但没用。", "就这样。", "未必。", "看情况。",
-    "难说。", "不一定。", "谁知道呢。", "不好说。", "其实不然。",
-    "未必如此。", "未必有效。", "未必能成。", "没什么大不了的。",
-    "也是奇怪。", "也正常。", "无所谓了。", "算了。",
+    '真的。', '但没用。', '就这样。', '未必。', '看情况。',
+    '难说。', '不一定。', '谁知道呢。', '不好说。', '其实不然。',
+    '未必如此。', '未必有效。', '未必能成。', '没什么大不了的。',
+    '也是奇怪。', '也正常。', '无所谓了。', '算了。',
 ]
+
+
+# ── 语境感知: 情感/语体/discourse relation 识别 (轻量零依赖) ──
+
+# 情感词典 (简化版, 内嵌; Phase 2 可扩为 sentiment_lexicon.json)
+_SENTIMENT_POSITIVE = {
+    '爱', '喜欢', '美好', '幸福', '快乐', '开心', '高兴', '欣慰',
+    '感动', '温暖', '珍惜', '怀念', '想念', '骄傲', '自豪', '成功',
+    '突破', '进展', '成效', '收获', '希望', '期待', '赞美', '优秀',
+    '显著', '卓越', '杰出', '辉煌', '美满', '甜蜜', '温馨', '慈祥',
+    '鼓励', '支持', '帮助', '进步', '提升', '改善', '优化', '完善',
+}
+_SENTIMENT_NEGATIVE = {
+    '失去', '失败', '挫折', '痛苦', '悲伤', '难过', '伤心', '失望',
+    '绝望', '无奈', '遗憾', '后悔', '错误', '缺陷', '不足', '问题',
+    '困难', '困境', '危机', '威胁', '风险', '挑战', '障碍', '阻力',
+    '下降', '退化', '衰退', '恶化', '削弱', '损害', '破坏', '严重',
+}
+# 否定词 (前一词极性翻转)
+_NEGATORS = {'不', '没', '未', '别', '无', '非', '莫'}
+
+# 语体 marker (学术/法律/医学, 命中 >=2 个判定为 formal)
+# 强学术 marker: 命中 1 个即判定 academic (专属性高)
+_ACADEMIC_MARKERS_STRONG = {
+    'BERT', 'Transformer', 'GPT', '预训练', '微调', '神经网络',
+    '深度学习', '机器学习', '自注意力', '数据集', '准确率', '召回率',
+    'F1', '显著性', '泛化', '梯度', '表征', '嵌入',
+}
+# 弱学术 marker: 需 >=2 个才判定 academic (通用技术词)
+_ACADEMIC_MARKERS_WEAK = {
+    '研究', '本研究', '实验', '论文', '文献', '理论', '假设', '验证',
+    '模型', '算法', '相关性',
+    '架构', '机制', '建模', '序列', '依赖', '长距离',
+    '迭代', '优化', '参数', '特征', '编码', '解码', '注意力',
+}
+# 强法律 marker: 命中 1 个即判定 legal
+_LEGAL_MARKERS_STRONG = {
+    '构成要件', '数据隐私', '算法偏见', '个人信息', '知情同意',
+    '司法实践', '行为人', '主观故意',
+}
+# 弱法律 marker: 需 >=2
+_LEGAL_MARKERS_WEAK = {
+    '法律', '法规', '条款', '合规', '监管', '权利', '义务',
+    '认定', '证据', '判决', '裁判', '追诉', '刑事责任',
+}
+_MEDICAL_MARKERS = {
+    'PKM2', '丙酮酸激酶', '凋亡', '糖酵解', '信号通路', '细胞代谢',
+    '增殖', '肿瘤', '蛋白', '基因', '分子', '临床', '诊断', '治疗',
+    '病理', '生理', '酶', '受体', '抑制', '激活',
+}
+
+# 转折词 (用于 discourse relation = contrast 判定)
+_CONTRAST_MARKERS = {'但是', '然而', '不过', '可是', '尽管如此', '反而', '反之', '相比之下'}
+
+# 收尾词 (用于 discourse relation = termination 判定)
+_TERMINATION_MARKERS = {'总结', '综上', '总的来说', '总而言之', '到此结束', '到此为止',
+                        '就此结束', '先到这里', '说完了', '讲完了'}
+
+
+def _sentiment_of_sentence(sent):
+    """判定单句情感极性. 返回 'positive' / 'negative' / 'neutral'.
+
+    算法: 统计 positive/negative 词数, 否定词翻转前一词极性.
+    """
+    if not sent:
+        return 'neutral'
+    pos = 0
+    neg = 0
+    prev_negated = False
+    for ch in sent:
+        # 简单按字符扫描 (中文单字情感词 + 2字词前缀匹配)
+        if ch in _NEGATORS:
+            prev_negated = True
+            continue
+        if ch in _SENTIMENT_POSITIVE:
+            if prev_negated:
+                neg += 1
+            else:
+                pos += 1
+            prev_negated = False
+        elif ch in _SENTIMENT_NEGATIVE:
+            if prev_negated:
+                pos += 1
+            else:
+                neg += 1
+            prev_negated = False
+        else:
+            prev_negated = False
+    # 2-4 字情感词扫描
+    for w in _SENTIMENT_POSITIVE:
+        if len(w) >= 2 and w in sent:
+            pos += 1
+    for w in _SENTIMENT_NEGATIVE:
+        if len(w) >= 2 and w in sent:
+            neg += 1
+    if pos > neg + 1:
+        return 'positive'
+    if neg > pos + 1:
+        return 'negative'
+    return 'neutral'
+
+
+def _register_of_text(text):
+    """判定文本语体. 返回 'academic' / 'legal' / 'medical' / 'general'.
+
+    算法:
+      - 强学术 marker 命中 >=1 → academic
+      - 弱学术 marker 命中 >=2 → academic
+      - legal/medical marker 命中 >=2 → 对应语体
+      - 否则 → general
+    """
+    if not text:
+        return 'general'
+    # 强学术词 1 个就够
+    if any(w in text for w in _ACADEMIC_MARKERS_STRONG):
+        return 'academic'
+    # 强法律词 1 个就够
+    if any(w in text for w in _LEGAL_MARKERS_STRONG):
+        return 'legal'
+    # 弱学术词需 >=2
+    acad_weak = sum(1 for w in _ACADEMIC_MARKERS_WEAK if w in text)
+    legal_weak = sum(1 for w in _LEGAL_MARKERS_WEAK if w in text)
+    med = sum(1 for w in _MEDICAL_MARKERS if w in text)
+    if med >= 2:
+        return 'medical'
+    if legal_weak >= 2:
+        return 'legal'
+    if acad_weak >= 2:
+        return 'academic'
+    return 'general'
+
+
+def _discourse_relation_of(prev_sent, curr_sent):
+    """推断相邻句 discourse relation.
+
+    返回 'contrast' / 'elaboration' / 'termination' / 'unknown'.
+
+    算法:
+      1. curr 句首含转折词 → contrast
+      2. prev 句含转折词 (如"但是他并不认同") → contrast
+      3. curr 句含收尾词 (总结/综上/到此结束) → termination
+      4. 共享字符多 → elaboration
+      5. 否则 → unknown
+    """
+    if not curr_sent:
+        return 'unknown'
+    curr_head = curr_sent.strip()[:6]
+    for marker in _CONTRAST_MARKERS:
+        if marker in curr_head:
+            return 'contrast'
+    # prev 句含转折词 → contrast (如"大家都认为稳妥, 但是他并不认同" → 下句是转折延续)
+    if prev_sent:
+        for marker in _CONTRAST_MARKERS:
+            if marker in prev_sent:
+                return 'contrast'
+    # curr 句含收尾词 → termination
+    for marker in _TERMINATION_MARKERS:
+        if marker in curr_sent:
+            return 'termination'
+    # 实体共现 (简化版 Centering)
+    if prev_sent:
+        prev_chars = set(c for c in prev_sent if '\u4e00' <= c <= '\u9fff')
+        curr_chars = set(c for c in curr_sent if '\u4e00' <= c <= '\u9fff')
+        overlap = prev_chars & curr_chars
+        if len(overlap) >= 2:
+            return 'elaboration'
+    return 'unknown'
+
+
+def _pick_fragment(relation, sentiment, register, rng, allow_comment=True):
+    """根据 discourse relation + sentiment + register 选碎片.
+
+    返回带句号的碎片字符串.
+
+    选择逻辑:
+      1. formal register (academic/legal/medical) + relation != contrast
+         → 只允许 hedge (学术场景最安全)
+      2. relation == contrast → contrast 类
+      3. sentiment == positive → comment_positive
+      4. sentiment == negative → comment_negative
+      5. sentiment == neutral → comment_neutral + hedge 混合
+      6. fallback → hedge
+    """
+    fragments = _load_fragments_by_relation()
+
+    # formal register 只允许 hedge (除非 contrast 关系)
+    if register in ('academic', 'legal', 'medical') and relation != 'contrast':
+        pool = fragments.get('hedge', _FRAGMENTS_FALLBACK['hedge'])
+        return rng.choice(pool) if pool else ''
+
+    if relation == 'contrast':
+        pool = fragments.get('contrast', _FRAGMENTS_FALLBACK['contrast'])
+        return rng.choice(pool) if pool else ''
+
+    if relation == 'termination':
+        pool = fragments.get('comment_termination', _FRAGMENTS_FALLBACK['comment_termination'])
+        return rng.choice(pool) if pool else ''
+
+    if not allow_comment:
+        pool = fragments.get('hedge', _FRAGMENTS_FALLBACK['hedge'])
+        return rng.choice(pool) if pool else ''
+
+    if sentiment == 'positive':
+        pool = fragments.get('comment_positive', _FRAGMENTS_FALLBACK['comment_positive'])
+    elif sentiment == 'negative':
+        pool = fragments.get('comment_negative', _FRAGMENTS_FALLBACK['comment_negative'])
+    else:
+        # neutral: comment_neutral + hedge 混合
+        pool = (fragments.get('comment_neutral', _FRAGMENTS_FALLBACK['comment_neutral'])
+                + fragments.get('hedge', _FRAGMENTS_FALLBACK['hedge']))
+    return rng.choice(pool) if pool else ''
 
 
 def _find_natural_split(sentence):
@@ -135,10 +414,13 @@ def burstiness_engineering(text, intensity=0.7, seed=None):
                 if split_pos:
                     short_part = sent[:split_pos].strip()
                     rest_part = sent[split_pos:].strip()
-                    # split_sentences 已保留句末标点，无需再追加
-                    result.append(short_part + '。')
-                    if rng.random() < intensity * 0.5:
-                        result.append(rng.choice(_FRAGMENTS))
+                    # Phase 1: 拆点后不再插碎片 (碎片由 fragment_injection 语境感知统一处理)
+                    # short_part 末尾标点规范化
+                    if short_part and short_part[-1] in '，、':
+                        short_part = short_part[:-1] + '。'
+                    elif short_part and short_part[-1] not in '。！？；':
+                        short_part = short_part + '。'
+                    result.append(short_part)
                     # rest_part 若已有标点则保留，否则补句号
                     if rest_part and rest_part[-1] in '。！？；':
                         result.append(rest_part)
@@ -178,11 +460,26 @@ def burstiness_engineering(text, intensity=0.7, seed=None):
 
 def fragment_injection(text, intensity=0.3, seed=None):
     """
-    碎片注入: 在长句后注入 2-5 字的碎片句。
+    语境感知碎片注入: 在长句后注入 2-6 字的碎片句.
 
     理论:
         人类写作特征: 长句后跟碎片句 ("但没用。" "真的。")
         AI 文本几乎没有碎片句
+        Centering Theory (Grosz 1995): 相邻句中心转移影响连贯性
+        PDTB-style Chinese (Zhou & Xue 2012): discourse relation 4 大类
+        Huang 2014: DM 含 sentiment polarity
+
+    Phase 1 改动 (vs 旧版):
+      1. 句末标点约束: 只在 。！？ 后插, 不在 ，、 后插 (修复"细胞代谢、。真的。增殖")
+      2. 全局上限: 单篇最多 3 个碎片 (旧版无上限)
+      3. 间距控制: 距上一个碎片 >= 3 句
+      4. 语境感知: 根据 discourse relation + sentiment + register 选碎片类
+         - academic/legal/medical 语体 → 只允许 hedge
+         - contrast 关系 → contrast 类
+         - positive 情感 → comment_positive
+         - negative 情感 → comment_negative
+         - neutral → comment_neutral + hedge 混合
+      5. 不在末句后插 (避免孤立碎片)
 
     参数:
         text: 输入文本
@@ -198,17 +495,46 @@ def fragment_injection(text, intensity=0.3, seed=None):
     if len(sentences) < 1:
         return text
 
+    # 语体判定 (全文一次)
+    text_register = _register_of_text(text)
+    formal_registers = ('academic', 'legal', 'medical')
+    allow_comment = text_register not in formal_registers
+
+    MAX_FRAGMENTS = 3
+    MIN_GAP = 3  # 距上一个碎片至少 3 句
+
     result = []
-    for sent in sentences:
-        # split_sentences 已保留句末标点
+    frag_count = 0
+    last_frag_idx = -MIN_GAP - 1  # 允许第一次插入
+
+    for i, sent in enumerate(sentences):
+        # 保留句末标点
         if sent and sent[-1] in '。！？；':
             result.append(sent)
         else:
             result.append(sent + '。')
-        if len(sent) > 25 and rng.random() < intensity:
-            # 避免连续注入碎片
-            if len(result) >= 2 and len(result[-2]) > 5:
-                result.append(rng.choice(_FRAGMENTS))
+
+        # 插入判定
+        should_try = (
+            len(sent) > 25
+            and sent[-1] in '。！？'  # 必须句末标点 (修复 C3)
+            and frag_count < MAX_FRAGMENTS
+            and i - last_frag_idx >= MIN_GAP
+            and i < len(sentences) - 1  # 不在末句后插
+        )
+
+        if should_try and rng.random() < intensity:
+            prev_sent = sentences[i - 1] if i > 0 else ''
+            relation = _discourse_relation_of(prev_sent, sent)
+            sentiment = _sentiment_of_sentence(sent)
+            fragment = _pick_fragment(
+                relation, sentiment, text_register, rng,
+                allow_comment=allow_comment
+            )
+            if fragment:
+                result.append(fragment)
+                frag_count += 1
+                last_frag_idx = i
 
     return ''.join(result)
 
@@ -448,14 +774,11 @@ def punctuation_humanize(text, intensity=0.3, seed=None):
                 result = result[:end] + '？' + result[end + 1:]
             pos = end + 1 if end > 0 else len(result)
 
-    # 3. 在适当位置加省略号
-    if result.count('……') == 0 and rng.random() < intensity * 0.3:
-        paras = result.split('\n')
-        if paras:
-            last_para = paras[-1].rstrip('。')
-            if len(last_para) > 50:
-                paras[-1] = last_para + '……'
-                result = '\n'.join(paras)
+    # Phase 1: 砍掉省略号添加逻辑 (原第 3 步)
+    # 旧版在末段长度 > 50 时随机加省略号, 但触发条件只看长度+随机,
+    # 不看末句语义是否属于"未尽/沉思/留白". 实测产生"势头不错……"
+    # "确保了实验的可靠性……" 等语义错位 (省略号语用功能是未尽/沉思,
+    # 不是降低句号密度的工具). 直接砍掉, 原文有省略号则保留.
 
     return result
 
@@ -505,7 +828,8 @@ _VOCAB_REPLACEMENTS = {
 }
 
 
-def ai_vocab_scrub(text, intensity=0.7, seed=None, replacements=None):
+def ai_vocab_scrub(text, intensity=0.7, seed=None, replacements=None,
+                   protected_set=None):
     """
     AI 词汇指纹清除: 替换 AI 高频词为口语化表达。
 
@@ -518,27 +842,46 @@ def ai_vocab_scrub(text, intensity=0.7, seed=None, replacements=None):
         intensity: 0-1, 替换概率
         seed: 随机种子
         replacements: 替换映射表 (可选, 默认使用内置表)
+        protected_set: 受保护术语集合 (可选, 来自 _humanize_protect).
+            位于这些术语内部的 ai_word 不会被替换, 避免 数据隐私→数额隐私
+            类误替换. None 时表示不启用保护.
 
     返回:
         str: 改写后的文本
     """
+    import re as _re
     rng = random.Random(seed)
     if replacements is None:
         replacements = _VOCAB_REPLACEMENTS
 
+    # 预计算受保护位置集 (一次性, 避免每次替换重算)
+    blocked_positions = set()
+    if protected_set:
+        for t in protected_set:
+            if not t or len(t) < 2:
+                continue
+            for m in _re.finditer(_re.escape(t), text):
+                for p in range(m.start(), m.end()):
+                    blocked_positions.add(p)
+
     result = text
     for ai_word, alternatives in replacements.items():
-        count = result.count(ai_word)
-        if count == 0:
+        # 从后向前替换, 避免位置偏移
+        positions = [m.start() for m in _re.finditer(_re.escape(ai_word), result)]
+        if not positions:
             continue
-        for _ in range(count):
-            if ai_word not in result:
-                break
+        for pos in reversed(positions):
+            # 术语保护: 跳过位于受保护术语内部的 occurrence
+            if pos in blocked_positions:
+                continue
             if rng.random() < intensity:
                 replacement = rng.choice(alternatives)
-                result = result.replace(ai_word, replacement, 1)
-            else:
-                break
+                result = result[:pos] + replacement + result[pos + len(ai_word):]
+                # 更新 blocked_positions (替换后位置偏移)
+                delta = len(replacement) - len(ai_word)
+                if delta != 0:
+                    blocked_positions = {p if p < pos else p + delta
+                                         for p in blocked_positions}
 
     return result
 

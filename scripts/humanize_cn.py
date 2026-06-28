@@ -23,6 +23,14 @@ _USE_NOISE = True
 # via --cilin CLI flag.
 _USE_CILIN = False
 
+# ── 术语保护层 (Phase 1, 集成自 protect-terms-simple 分支) ──
+# Module-level flags for domain-term protection.
+# Populated by humanize() when --protect is used.
+# _PROTECTION_SET 是推断的 Top-3 领域术语集合 (减小内存/算力开销),
+# 由 _humanize_protect.ProtectLayer.detect_domains + extract_protected_terms 生成.
+_USE_PROTECT_FLAG = False
+_PROTECTION_SET = set()
+
 _ACADEMIC_LR_MARKERS = (
     '本研究',
     '研究表明',
@@ -1688,9 +1696,21 @@ def reduce_high_freq_bigrams(text, strength=0.3, scene='general'):
             return default
 
         # Rebuild text by iterating occurrences back-to-front (avoid shifting positions)
+        # ── 术语保护: 排除位于受保护术语内部的 occurrence ──
+        _blocked_positions = set()
+        if _USE_PROTECT_FLAG and _PROTECTION_SET:
+            for t in _PROTECTION_SET:
+                if t == word:
+                    continue  # 保护词本身就是要替换的词时, 由上面的 preserve 处理
+                for m in re.finditer(re.escape(t), text):
+                    for p in range(m.start(), m.end()):
+                        _blocked_positions.add(p)
         for k in reversed(range(len(occurrences))):
             pos = occurrences[k]
             if k not in to_replace:
+                continue
+            # 术语保护: 跳过位于受保护术语内部的 occurrence
+            if pos in _blocked_positions:
                 continue
             # Word-boundary doubling guard: check next char in source after the
             # word being replaced. If alt ends with that char, swap to a
@@ -1778,8 +1798,18 @@ def _simple_synonym_pass(text, strength=0.3, scene='general'):
     n_replace = max(1, int(len(found) * strength))
     random.shuffle(found)
     replaced_positions = set()
+    # ── 术语保护: 预计算受保护位置集 ──
+    _blocked_positions = set()
+    if _USE_PROTECT_FLAG and _PROTECTION_SET:
+        for t in _PROTECTION_SET:
+            for m in re.finditer(re.escape(t), text):
+                for p in range(m.start(), m.end()):
+                    _blocked_positions.add(p)
     for word, pos in found[:n_replace]:
         if any(p in replaced_positions for p in range(pos, pos + len(word))):
+            continue
+        # 术语保护: 跳过位于受保护术语内部的 occurrence
+        if pos in _blocked_positions:
             continue
         candidates = _filter_candidates_for_scene(word, WORD_SYNONYMS[word], scene)
         if not candidates:
@@ -3561,7 +3591,8 @@ def _format_best_of_debug(seed, scene_picked, lr_scores, secondary, rank_score,
 
 def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAULT_BEST_OF_N,
              style=None, debug_best_of_n=False, score_mode='lr',
-             secondary_weight=DEFAULT_SECONDARY_WEIGHT, adaptive=False):
+             secondary_weight=DEFAULT_SECONDARY_WEIGHT, adaptive=False,
+             protect=False):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -3578,7 +3609,32 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     Rationale: HC3 benchmark showed that full pipeline on already-clean text
     (source score < 15) adds spurious AI patterns (段落均匀/熵低) via noise
     injection, sometimes INCREASING detected score. Tiered intensity avoids this.
+
+    protect: if True, load domain-term protection layer (_humanize_protect)
+    and skip synonym replacement inside protected terms. Reduces mis-substitution
+    on domain vocabulary (e.g. 数据隐私 → 数额隐私). Mini dict (68K terms) ships
+    offline; full domain-aware mode needs scripts/data/DomainWordsDict/ (see
+    download_full_dict.py). Protection set is inferred to Top-3 domains to bound
+    memory/compute.
     """
+    # ── 术语保护: 构建保护集 (Top-3 领域, 减小内存/算力) ──
+    # Guards recompute blocked positions from current text at each check
+    # because prior passes (restructure, merge, split) shift character positions.
+    global _USE_PROTECT_FLAG, _PROTECTION_SET
+    _PROTECTION_SET = set()
+    _USE_PROTECT_FLAG = False
+    if protect:
+        try:
+            from _humanize_protect import get_layer as _get_protect_layer
+        except ImportError:
+            _get_protect_layer = None
+        if _get_protect_layer:
+            _layer = _get_protect_layer()
+            if _layer.is_ready():
+                # Top-3 领域推断 (mini 模式返回全部匹配, full 模式按领域+权重)
+                _PROTECTION_SET = _layer.extract_protected_terms(text, domains_or_top_n=3)
+                _USE_PROTECT_FLAG = bool(_PROTECTION_SET)
+
     if best_of_n and best_of_n > 1:
         try:
             from ngram_model import compute_lr_score
@@ -3884,10 +3940,12 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             except Exception:
                 pass
 
-        # 6. AI 词汇指纹清除
+        # 6. AI 词汇指纹清除 (带术语保护)
         if _ro_params.get('ai_vocab_scrub', 0) > 0:
             try:
-                text = ai_vocab_scrub(text, intensity=_ro_params['ai_vocab_scrub'], seed=seed)
+                _prot = _PROTECTION_SET if _USE_PROTECT_FLAG else None
+                text = ai_vocab_scrub(text, intensity=_ro_params['ai_vocab_scrub'],
+                                      seed=seed, protected_set=_prot)
             except Exception:
                 pass
 
@@ -3979,6 +4037,11 @@ def main():
                              '建议 pip install jieba numpy 获得检测端最佳效果; 改写端零依赖不受影响。')
     parser.add_argument('--adaptive-deps', action='store_true',
                         help='仅检测 --adaptive 所需依赖状态，不执行改写')
+    parser.add_argument('--protect', action='store_true',
+                        help='启用术语保护层 (基于 _humanize_protect 的 68K 术语词典), '
+                             '跳过位于受保护领域术语内部的同义词替换, '
+                             '避免 数据隐私→数额隐私 类误替换。'
+                             '需 scripts/data/mini_dict.json (见 download_full_dict.py)。')
 
     args = parser.parse_args()
 
@@ -4024,7 +4087,8 @@ def main():
                        debug_best_of_n=args.debug_best_of_n,
                        score_mode=args.score_mode,
                        secondary_weight=args.secondary_weight,
-                       adaptive=args.adaptive)
+                       adaptive=args.adaptive,
+                       protect=args.protect)
     
     # Apply style if specified
     if args.style:

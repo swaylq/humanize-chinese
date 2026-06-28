@@ -1,0 +1,301 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "date": "2026-06-26",
+    "purpose": "验收 _pick_fragment 选择算法的语境感知能力",
+    "metrics": ["accuracy", "no_negative_in_positive", "no_comment_in_academic"],
+    "categories": [
+      "hedge",
+      "comment_neutral",
+      "comment_surprise",
+      "comment_positive",
+      "comment_negative",
+      "comment_termination",
+      "contrast"
+    ],
+    "coverage": {
+      "academic": 5,
+      "legal": 3,
+      "medical": 3,
+      "nostalgia_warmth": 4,
+      "praise_positive": 4,
+      "failure_negative": 4,
+      "contrast_relation": 4,
+      "termination": 3,
+      "total": 30
+    }
+  },
+
+  "cases": [
+    {
+      "id": "case_001",
+      "scenario": "academic",
+      "prev_sent": "本研究基于 BERT 模型进行微调实验",
+      "curr_sent": "实验结果显示模型在多项下游任务上表现稳定",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "学术语体含 BERT/微调, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_002",
+      "scenario": "academic",
+      "prev_sent": "Transformer 架构通过自注意力机制实现序列建模",
+      "curr_sent": "这一机制显著提升了长距离依赖的建模能力",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "学术语体含 Transformer, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_003",
+      "scenario": "academic",
+      "prev_sent": "本研究揭示了 PKM2 在肿瘤细胞中的复杂功能",
+      "curr_sent": "PKM2 的异构体转换对肿瘤代谢提供新的调控机制",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "学术语体含 PKM2, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_004",
+      "scenario": "academic",
+      "prev_sent": "大规模预训练语言模型展现出强大的零样本学习能力",
+      "curr_sent": "模型参数规模的扩大带来了涌现能力的显著提升",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "学术语体含 预训练, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_005",
+      "scenario": "academic",
+      "prev_sent": "我们对基础模型进行了指令微调",
+      "curr_sent": "微调后的模型在问答任务上的准确率有所提高",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "学术语体含 微调, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_006",
+      "scenario": "legal",
+      "prev_sent": "数据隐私保护已成为算法治理的核心议题",
+      "curr_sent": "个人信息处理需遵循合法正当必要的原则",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "法律语体含 数据隐私, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_007",
+      "scenario": "legal",
+      "prev_sent": "算法偏见可能加剧社会群体的不平等",
+      "curr_sent": "立法者需对自动化决策进行透明度审查",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "法律语体含 算法偏见, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_008",
+      "scenario": "legal",
+      "prev_sent": "本罪构成要件要求行为人具有主观故意",
+      "curr_sent": "司法实践中对故意的认定需结合具体证据",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "法律语体含 构成要件, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_009",
+      "scenario": "medical",
+      "prev_sent": "该药物诱导肿瘤细胞发生凋亡",
+      "curr_sent": "凋亡相关蛋白的表达水平显著上调",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "医学语体含 凋亡, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_010",
+      "scenario": "medical",
+      "prev_sent": "肿瘤细胞倾向于通过糖酵解获取能量",
+      "curr_sent": "这一代谢过程产生大量乳酸并改变微环境",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "医学语体含 糖酵解, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_011",
+      "scenario": "medical",
+      "prev_sent": "PI3K/AKT 信号通路在细胞增殖中起关键作用",
+      "curr_sent": "该通路的异常激活与多种肿瘤相关",
+      "expected_category": ["hedge"],
+      "forbidden_category": ["comment_positive", "comment_negative", "comment_surprise", "comment_termination", "comment_neutral", "contrast"],
+      "reason": "医学语体含 信号通路, 只允许 hedge, 禁插所有 comment 类"
+    },
+    {
+      "id": "case_012",
+      "scenario": "nostalgia_warmth",
+      "prev_sent": "爷爷主动承担起了照顾我的责任",
+      "curr_sent": "那时候我们住在老城区的一栋旧楼里",
+      "expected_category": ["hedge", "comment_neutral"],
+      "forbidden_category": ["comment_negative", "comment_surprise"],
+      "reason": "前句含怀念/温情(爷爷), 禁插消极(没什么大不了)或惊讶(也是奇怪)"
+    },
+    {
+      "id": "case_013",
+      "scenario": "nostalgia_warmth",
+      "prev_sent": "母亲总是在深夜等我回家",
+      "curr_sent": "她把饭菜热了一遍又一遍",
+      "expected_category": ["hedge", "comment_neutral"],
+      "forbidden_category": ["comment_negative", "comment_surprise"],
+      "reason": "前句含温情(母亲), 禁插消极或惊讶"
+    },
+    {
+      "id": "case_014",
+      "scenario": "nostalgia_warmth",
+      "prev_sent": "回忆起童年的夏天总觉得格外漫长",
+      "curr_sent": "那时候蝉鸣能从早响到晚",
+      "expected_category": ["hedge", "comment_neutral"],
+      "forbidden_category": ["comment_negative", "comment_surprise"],
+      "reason": "前句含回忆, 禁插消极或惊讶"
+    },
+    {
+      "id": "case_015",
+      "scenario": "nostalgia_warmth",
+      "prev_sent": "我还记得第一次去海边的样子",
+      "curr_sent": "海风带着咸味扑面而来",
+      "expected_category": ["hedge", "comment_neutral"],
+      "forbidden_category": ["comment_negative", "comment_surprise"],
+      "reason": "前句含记得, 禁插消极或惊讶"
+    },
+    {
+      "id": "case_016",
+      "scenario": "praise_positive",
+      "prev_sent": "团队在芯片研发上取得显著进展",
+      "curr_sent": "自主架构的性能已接近国际先进水平",
+      "expected_category": ["comment_positive", "hedge"],
+      "forbidden_category": ["comment_negative"],
+      "reason": "前句含显著进展, 期望 comment_positive 或 hedge, 禁消极"
+    },
+    {
+      "id": "case_017",
+      "scenario": "praise_positive",
+      "prev_sent": "实验组在材料强度上实现重大突破",
+      "curr_sent": "新型合金的耐疲劳性能大幅提升",
+      "expected_category": ["comment_positive", "hedge"],
+      "forbidden_category": ["comment_negative"],
+      "reason": "前句含突破, 期望 comment_positive 或 hedge, 禁消极"
+    },
+    {
+      "id": "case_018",
+      "scenario": "praise_positive",
+      "prev_sent": "项目团队成功完成首次海上试航",
+      "curr_sent": "各项指标均达到设计预期",
+      "expected_category": ["comment_positive", "hedge"],
+      "forbidden_category": ["comment_negative"],
+      "reason": "前句含成功, 期望 comment_positive 或 hedge, 禁消极"
+    },
+    {
+      "id": "case_019",
+      "scenario": "praise_positive",
+      "prev_sent": "课题组的研究成果获得业界广泛认可",
+      "curr_sent": "多家企业已启动联合转化工作",
+      "expected_category": ["comment_positive", "hedge"],
+      "forbidden_category": ["comment_negative"],
+      "reason": "前句含积极成果, 期望 comment_positive 或 hedge, 禁消极"
+    },
+    {
+      "id": "case_020",
+      "scenario": "failure_negative",
+      "prev_sent": "他失去了那份维系十年的工作",
+      "curr_sent": "之后的几个月他几乎不出门",
+      "expected_category": ["comment_negative", "hedge"],
+      "forbidden_category": ["comment_positive", "comment_surprise"],
+      "reason": "前句含失去, 期望 comment_negative 或 hedge, 禁积极或惊讶"
+    },
+    {
+      "id": "case_021",
+      "scenario": "failure_negative",
+      "prev_sent": "这次创业失败让他重新审视自己的方向",
+      "curr_sent": "他开始认真考虑回到稳定的轨道",
+      "expected_category": ["comment_negative", "hedge"],
+      "forbidden_category": ["comment_positive", "comment_surprise"],
+      "reason": "前句含失败, 期望 comment_negative 或 hedge, 禁积极或惊讶"
+    },
+    {
+      "id": "case_022",
+      "scenario": "failure_negative",
+      "prev_sent": "接连的挫折让他对未来感到迷茫",
+      "curr_sent": "他不知道下一步该往哪里走",
+      "expected_category": ["comment_negative", "hedge"],
+      "forbidden_category": ["comment_positive", "comment_surprise"],
+      "reason": "前句含挫折, 期望 comment_negative 或 hedge, 禁积极或惊讶"
+    },
+    {
+      "id": "case_023",
+      "scenario": "failure_negative",
+      "prev_sent": "她的情绪在长时期低落后开始慢慢平复",
+      "curr_sent": "她重新拾起了一些旧日的爱好",
+      "expected_category": ["comment_negative", "hedge"],
+      "forbidden_category": ["comment_positive", "comment_surprise"],
+      "reason": "前句含低落情绪, 期望 comment_negative 或 hedge, 禁积极或惊讶"
+    },
+    {
+      "id": "case_024",
+      "scenario": "contrast_relation",
+      "prev_sent": "大家都认为这个方案稳妥, 但是他并不认同",
+      "curr_sent": "他提出了一个更激进的替代方案",
+      "expected_category": ["contrast"],
+      "forbidden_category": ["comment_positive", "comment_termination"],
+      "reason": "前句含转折标记 但是, 期望 contrast 类"
+    },
+    {
+      "id": "case_025",
+      "scenario": "contrast_relation",
+      "prev_sent": "此前的研究显示该基因高表达, 然而新数据并不支持这一结论",
+      "curr_sent": "重复实验中我们观察到了相反的趋势",
+      "expected_category": ["contrast"],
+      "forbidden_category": ["comment_positive", "comment_termination"],
+      "reason": "前句含转折标记 然而, 期望 contrast 类"
+    },
+    {
+      "id": "case_026",
+      "scenario": "contrast_relation",
+      "prev_sent": "这条路线风景优美, 不过路程要长得多",
+      "curr_sent": "我们最后还是选择了更近的那条",
+      "expected_category": ["contrast"],
+      "forbidden_category": ["comment_positive", "comment_termination"],
+      "reason": "前句含转折标记 不过, 期望 contrast 类"
+    },
+    {
+      "id": "case_027",
+      "scenario": "contrast_relation",
+      "prev_sent": "他加大了投入, 反而收效甚微",
+      "curr_sent": "这让他不得不重新评估策略",
+      "expected_category": ["contrast"],
+      "forbidden_category": ["comment_positive", "comment_termination"],
+      "reason": "前句含转折语义 反而, 期望 contrast 类"
+    },
+    {
+      "id": "case_028",
+      "scenario": "termination",
+      "prev_sent": "团队完成了三轮迭代与回归测试",
+      "curr_sent": "总结来看, 本次上线整体平稳无重大缺陷",
+      "expected_category": ["comment_termination", "comment_neutral"],
+      "forbidden_category": ["comment_surprise"],
+      "reason": "当前句是末句且含 总结, 期望 comment_termination"
+    },
+    {
+      "id": "case_029",
+      "scenario": "termination",
+      "prev_sent": "各项指标均已达到验收标准",
+      "curr_sent": "综上, 项目可以进入下一阶段",
+      "expected_category": ["comment_termination", "comment_neutral"],
+      "forbidden_category": ["comment_surprise"],
+      "reason": "当前句是末句且含 综上, 期望 comment_termination"
+    },
+    {
+      "id": "case_030",
+      "scenario": "termination",
+      "prev_sent": "上述内容覆盖了本次报告的全部要点",
+      "curr_sent": "今天的汇报就到此结束",
+      "expected_category": ["comment_termination", "comment_neutral"],
+      "forbidden_category": ["comment_surprise"],
+      "reason": "当前句是末句且含 到此, 期望 comment_termination"
+    }
+  ]
+}

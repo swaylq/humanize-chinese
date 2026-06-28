@@ -1,5 +1,13 @@
 # ── 开发用目录 (非用户面向) ──
-dev/
+# dev/ 整体不再忽略；仅忽略以下生成数据 / 缓存 / fdgpt 相关子项
+# 必要的测试与训练脚本 (*.py / *.ps1) 与报告 (*.md) 可正常提交
+dev/data/
+dev/showcase_v2_output/
+dev/_demo_*.txt
+dev/cross_version_results.json
+# fdgpt 相关脚本与结果（仅用于本地测试，不提交）
+dev/fdgpt_full_bench.py
+dev/fdgpt_score_bench.py
 
 # ── 缓存目录 ──
 scripts/__pycache__/
@@ -20,6 +28,11 @@ scripts/weights/ngram_freq_cn_news.json
 # ── 压缩率 oracle 种子语料 (本地构建) ──
 evals/compression_ai_seed.txt
 evals/compression_human_seed.txt
+
+# ── 术语保护词典 (4.7MB, 按需下载, 不提交) ──
+# 用 python scripts/download_full_dict.py 下载, 或从 protect-terms-simple 分支复制
+scripts/data/mini_dict.json
+scripts/data/DomainWordsDict/
 
 # ── 评测/基准 (已移入 dev/) ──
 evals/

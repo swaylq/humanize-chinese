@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "date": "2026-06-26",
+    "sources": [
+      "Zhou & Xue, PDTB-style Discourse Annotation of Chinese Text, ACL 2012, https://aclanthology.org/P12-1008.pdf",
+      "Peng, Liu & Zeldes, Chinese Discourse Annotation Reference Manual, Georgetown 2022, https://arxiv.org/pdf/2212.06037",
+      "Huang et al., Web-Based Analysis of Chinese Discourse Markers for Opinion Mining, IEEE/WIC/ACM 2014",
+      "Formal Hedging in Chinese, sublearn 2026, https://sublearn.com/learn/zh/grammar/zh-formal-hedging-expressions",
+      "汉英科技论文模糊限制语：类型、功能与应用对比研究, 2025"
+    ],
+    "classification_basis": "PDTB 4 大类 (Temporal/Contingency/Comparison/Expansion) + RST evaluation-comment + Huang sentiment polarity + Lakoff hedge",
+    "usage": "rewrite_operations.py _pick_fragment 按 discourse_relation + sentiment 选类",
+    "format_rules": [
+      "每类 8-12 条",
+      "每条 2-6 个中文字符 + 句号",
+      "每类语用功能纯一, 情感极性一致",
+      "语体中性, 不含领域术语"
+    ]
+  },
+
+  "hedge": [
+    "未必如此。",
+    "也难讲。",
+    "不一定。",
+    "看情况。",
+    "未必。",
+    "难说。",
+    "不好说。",
+    "不一定吧。",
+    "未必有效。",
+    "未必能成。",
+    "也说不定。",
+    "看情形。"
+  ],
+
+  "comment_neutral": [
+    "看起来是这样。",
+    "有这个说法。",
+    "也正常。",
+    "也说得通。",
+    "有道理。",
+    "也合理。",
+    "看着是这样。",
+    "算是吧。",
+    "也讲得通。",
+    "算是这么回事。"
+  ],
+
+  "comment_surprise": [
+    "也是奇怪。",
+    "说来也怪。",
+    "也巧了。",
+    "也罕见。",
+    "也少见。",
+    "挺意外的。",
+    "真巧。",
+    "也奇怪。",
+    "挺新奇的。",
+    "也出奇。"
+  ],
+
+  "comment_positive": [
+    "颇有看点。",
+    "势头不错。",
+    "成效不小。",
+    "挺好的。",
+    "挺亮眼。",
+    "有点意思。",
+    "也难得。",
+    "也精彩。",
+    "挺可观的。",
+    "也亮眼。"
+  ],
+
+  "comment_negative": [
+    "没什么大不了。",
+    "算了。",
+    "无所谓了。",
+    "也无所谓。",
+    "也就那样。",
+    "不怎么样。",
+    "也平常。",
+    "也罢了。",
+    "也就如此。",
+    "也无关紧要。"
+  ],
+
+  "comment_termination": [
+    "就这样。",
+    "到此为止。",
+    "说完了。",
+    "就这些。",
+    "就到这。",
+    "也讲完了。",
+    "先这样。",
+    "差不多就这些。",
+    "就说到这。",
+    "先说到这。"
+  ],
+
+  "contrast": [
+    "其实不然。",
+    "话又说回来。",
+    "换个角度看。",
+    "也不尽然。",
+    "也未必如此。",
+    "反过来讲。",
+    "也未必是这样。",
+    "但也不一定。",
+    "也未必见得。",
+    "反过来看。"
+  ]
+}

@@ -43,6 +43,12 @@ OPTIONAL_ASSETS = (
         'enables news_vs_human LR feature',
         'python scripts/train_ngram_news.py',
     ),
+    (
+        'scripts/data/mini_dict.json',
+        1_000_000,
+        'enables --protect term protection (68K domain terms); avoids 数据隐私→数额隐私 mis-substitution',
+        'python scripts/download_full_dict.py  # or copy from protect-terms-simple branch',
+    ),
 )
 
 
