@@ -1,10 +1,12 @@
 # ── 开发用目录 (非用户面向) ──
-# dev/ 整体不再忽略；仅忽略以下生成数据 / 缓存 / fdgpt 相关子项
-# 必要的测试与训练脚本 (*.py / *.ps1) 与报告 (*.md) 可正常提交
+# dev/ 整体不再忽略；仅忽略以下生成数据 / 缓存 / 报告
 dev/data/
 dev/showcase_v2_output/
 dev/_demo_*.txt
 dev/cross_version_results.json
+dev/__pycache__/
+# 报告文档（本地开发记录，不提交）
+dev/reports/
 # fdgpt 相关脚本与结果（仅用于本地测试，不提交）
 dev/fdgpt_full_bench.py
 dev/fdgpt_score_bench.py
@@ -34,6 +36,5 @@ evals/compression_human_seed.txt
 scripts/data/mini_dict.json
 scripts/data/DomainWordsDict/
 
-# ── 评测/基准 (已移入 dev/) ──
-evals/
+# ── 基准测试 (本地构建，不提交) ──
 tests/
