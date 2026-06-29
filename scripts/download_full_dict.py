@@ -31,12 +31,21 @@ from io import BytesIO
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, 'data', 'DomainWordsDict')
 
-# Default download URL — update this to your release asset URL.
-# Generate a release on GitHub, upload the sorted JSONs as a zip,
-# then set this to the direct download URL of that zip asset.
-_DEFAULT_URL = (
-    'https://github.com/Asami-Lilith/humanize-chinese/releases/download/'
-    'Resources/DomainWordsDict.zip'
+# ── 默认下载 URL (从 GitHub Releases 获取) ──
+# 用户需在 GitHub 仓库的 Releases 页面上传以下两个资产:
+#   1. DomainWordsDict-v1.zip    — 完整领域词典 (full mode)
+#   2. mini_dict-v1.json         — 轻量术语词典 4.7MB (mini mode)
+# 上传后将下载 URL 中的 TAG_NAME 替换为实际的 release tag。
+# 当前默认指向 Asami-Lilith/humanize-chinese_01 仓库的 protect-dict-v1 release。
+_DEFAULT_REPO = 'Asami-Lilith/humanize-chinese_01'
+_DEFAULT_TAG = 'protect-dict-v1'
+_DEFAULT_FULL_URL = (
+    f'https://github.com/{_DEFAULT_REPO}/releases/download/{_DEFAULT_TAG}/'
+    'DomainWordsDict-v1.zip'
+)
+_DEFAULT_MINI_URL = (
+    f'https://github.com/{_DEFAULT_REPO}/releases/download/{_DEFAULT_TAG}/'
+    'mini_dict-v1.json'
 )
 
 
@@ -117,10 +126,13 @@ def _build_from_txt(src_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Download and deploy full DomainWordsDict JSON cache')
+        description='Download and deploy domain term dictionaries for --protect')
     parser.add_argument(
         '--url', metavar='URL',
-        help=f'Download URL for pre-sorted ZIP (default: GitHub release)')
+        help='Download URL for pre-sorted DomainWordsDict ZIP (overrides default)')
+    parser.add_argument(
+        '--mini', action='store_true',
+        help=f'Download only mini_dict.json (4.7MB, 68K terms, mini mode) instead of full ZIP')
     parser.add_argument(
         '--from-local', metavar='DIR',
         help='Copy pre-sorted JSONs from local directory')
@@ -135,6 +147,38 @@ def main():
         help='Overwrite existing files in data/DomainWordsDict/')
     args = parser.parse_args()
 
+    # ── 仅下载 mini_dict.json ──
+    if args.mini:
+        mini_path = os.path.join(SCRIPT_DIR, 'data', 'mini_dict.json')
+        if os.path.isfile(mini_path) and not args.force:
+            sz = os.path.getsize(mini_path)
+            print(f'mini_dict.json already exists ({sz/1024/1024:.1f} MB)')
+            print('Use --force to re-download.')
+            return 0
+        url = args.url or _DEFAULT_MINI_URL
+        print(f'Downloading mini_dict.json ...')
+        json_bytes = _download(url)
+        if json_bytes is None:
+            print('Download failed. Check network or --url.')
+            return 1
+        # 验证 JSON 合法性
+        try:
+            data = json.loads(json_bytes)
+            if isinstance(data, list) and len(data) > 10000:
+                print(f'  Valid: {len(data)} terms')
+            else:
+                print(f'  Warning: expected a list of 68K+ terms, got {type(data).__name__} with {len(data) if isinstance(data, (list, dict)) else "?"} items')
+        except json.JSONDecodeError as e:
+            print(f'  Invalid JSON: {e}')
+            return 1
+        os.makedirs(os.path.dirname(mini_path), exist_ok=True)
+        with open(mini_path, 'wb') as f:
+            f.write(json_bytes)
+        print(f'Saved: {mini_path} ({len(json_bytes)/1024/1024:.1f} MB)')
+        print('mini mode is now active on next --protect run.')
+        return 0
+
+    # ── 完整 DomainWordsDict (full mode) ──
     if os.path.isdir(DATA_DIR) and os.listdir(DATA_DIR) and not args.force:
         print(f'Full dictionary already exists at {DATA_DIR}')
         print('Use --force to re-download.')
@@ -161,20 +205,21 @@ def main():
                          os.path.join(DATA_DIR, fname))
         print(f'Copied {len(json_files)} JSON files from {src}')
     else:
-        url = args.url or _DEFAULT_URL
+        url = args.url or _DEFAULT_FULL_URL
         if not url:
             print('No download URL configured.')
             print()
             print('Options:')
-            print('  1. Set --url to a hosted ZIP of sorted DomainWordsDict JSONs')
-            print('  2. Use --from-txt <DomainWordsDict_txt_dir> to build from source')
-            print('  3. Use --from-local <path> to copy from existing JSONs')
+            print('  1. Use --mini to download only mini_dict.json')
+            print('  2. Use --url <URL> for a hosted DomainWordsDict ZIP')
+            print('  3. Use --from-txt <dir> to build from source')
+            print('  4. Use --from-local <dir> to copy from existing JSONs')
             return 1
         zip_bytes = _download(url)
         if zip_bytes is None:
             print()
-            print('Tip: you can also build from source txt files:')
-            print('  python scripts/download_full_dict.py --from-txt <DomainWordsDict_dir>')
+            print('Tip: use --mini to download only the mini_dict.json (4.7MB)')
+            print('  or --from-txt to build from source txt files.')
             return 1
         os.makedirs(DATA_DIR, exist_ok=True)
         if not _extract_zip(zip_bytes, DATA_DIR):

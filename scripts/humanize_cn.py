@@ -3641,16 +3641,15 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
                     _USE_PROTECT_FLAG = bool(_PROTECTION_SET)
             else:
                  # mini_dict.json 不存在时给出提示 (P8, 仅首次)
-                 global _PROTECT_HINT_SHOWN
-                 if not _PROTECT_HINT_SHOWN:
-                     _PROTECT_HINT_SHOWN = True
-                     import sys as _sys
-                     print('提示: --protect 需要 scripts/data/mini_dict.json, '
-                           '当前未找到, 术语保护已跳过.\n'
-                           '  获取方式: python scripts/download_full_dict.py\n'
-                           '  或从 protect-terms-simple 分支复制 scripts/data/mini_dict.json '
-                           '到本项目的 scripts/data/',
-                           file=_sys.stderr)
+                  global _PROTECT_HINT_SHOWN
+                  if not _PROTECT_HINT_SHOWN:
+                      _PROTECT_HINT_SHOWN = True
+                      import sys as _sys
+                      print('提示: --protect 需要术语保护词典, 当前未找到, 已跳过.\n'
+                            '  获取: python scripts/download_full_dict.py --mini\n'
+                            '  或从 protect-terms-simple 分支复制 scripts/data/mini_dict.json '
+                            '到本项目的 scripts/data/',
+                            file=_sys.stderr)
 
     if best_of_n and best_of_n > 1:
         try:
