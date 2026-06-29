@@ -28,8 +28,12 @@ _USE_CILIN = False
 # Populated by humanize() when --protect is used.
 # _PROTECTION_SET 是推断的 Top-3 领域术语集合 (减小内存/算力开销),
 # 由 _humanize_protect.ProtectLayer.detect_domains + extract_protected_terms 生成.
+# 使用 threading.Lock 保证 CLI 单进程安全, 多线程场景需外部序列化。
 _USE_PROTECT_FLAG = False
 _PROTECTION_SET = set()
+_PROTECT_LOCK = __import__('threading').Lock()
+# best_of_n 递归调用时提示只打印一次
+_PROTECT_HINT_SHOWN = False
 
 _ACADEMIC_LR_MARKERS = (
     '本研究',
@@ -3631,9 +3635,22 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         if _get_protect_layer:
             _layer = _get_protect_layer()
             if _layer.is_ready():
-                # Top-3 领域推断 (mini 模式返回全部匹配, full 模式按领域+权重)
-                _PROTECTION_SET = _layer.extract_protected_terms(text, domains_or_top_n=3)
-                _USE_PROTECT_FLAG = bool(_PROTECTION_SET)
+                with _PROTECT_LOCK:
+                    # Top-3 领域推断 (mini 模式返回全部匹配, full 模式按领域+权重)
+                    _PROTECTION_SET = _layer.extract_protected_terms(text, domains_or_top_n=3)
+                    _USE_PROTECT_FLAG = bool(_PROTECTION_SET)
+            else:
+                 # mini_dict.json 不存在时给出提示 (P8, 仅首次)
+                 global _PROTECT_HINT_SHOWN
+                 if not _PROTECT_HINT_SHOWN:
+                     _PROTECT_HINT_SHOWN = True
+                     import sys as _sys
+                     print('提示: --protect 需要 scripts/data/mini_dict.json, '
+                           '当前未找到, 术语保护已跳过.\n'
+                           '  获取方式: python scripts/download_full_dict.py\n'
+                           '  或从 protect-terms-simple 分支复制 scripts/data/mini_dict.json '
+                           '到本项目的 scripts/data/',
+                           file=_sys.stderr)
 
     if best_of_n and best_of_n > 1:
         try:
@@ -3654,7 +3671,8 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         for i in range(best_of_n):
             s = base_seed + i
             out = humanize(text, scene=scene, aggressive=aggressive,
-                           seed=s, best_of_n=None, style=style, adaptive=adaptive)
+                           seed=s, best_of_n=None, style=style, adaptive=adaptive,
+                           protect=protect)
             lr_scene = _pick_lr_scene(out)
             if lr_scene == 'longform':
                 out = _apply_longform_mutation_profile(
