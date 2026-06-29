@@ -36,9 +36,9 @@ DATA_DIR = os.path.join(SCRIPT_DIR, 'data', 'DomainWordsDict')
 #   1. DomainWordsDict-v1.zip    — 完整领域词典 (full mode)
 #   2. mini_dict-v1.json         — 轻量术语词典 4.7MB (mini mode)
 # 上传后将下载 URL 中的 TAG_NAME 替换为实际的 release tag。
-# 当前默认指向 Asami-Lilith/humanize-chinese_01 仓库的 protect-dict-v1 release。
+# 当前默认指向 Asami-Lilith/humanize-chinese_01 仓库的 Dictionary release。
 _DEFAULT_REPO = 'Asami-Lilith/humanize-chinese_01'
-_DEFAULT_TAG = 'protect-dict-v1'
+_DEFAULT_TAG = 'Dictionary'
 _DEFAULT_FULL_URL = (
     f'https://github.com/{_DEFAULT_REPO}/releases/download/{_DEFAULT_TAG}/'
     'DomainWordsDict-v1.zip'
