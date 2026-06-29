@@ -41,7 +41,7 @@ _DEFAULT_REPO = 'Asami-Lilith/humanize-chinese_01'
 _DEFAULT_TAG = 'Dictionary'
 _DEFAULT_FULL_URL = (
     f'https://github.com/{_DEFAULT_REPO}/releases/download/{_DEFAULT_TAG}/'
-    'DomainWordsDict-v1.zip'
+    'DomainWordsDict.zip'
 )
 _DEFAULT_MINI_URL = (
     f'https://github.com/{_DEFAULT_REPO}/releases/download/{_DEFAULT_TAG}/'
