@@ -23,6 +23,18 @@ _USE_NOISE = True
 # via --cilin CLI flag.
 _USE_CILIN = False
 
+# ── 术语保护层 (Phase 1, 集成自 protect-terms-simple 分支) ──
+# Module-level flags for domain-term protection.
+# Populated by humanize() when --protect is used.
+# _PROTECTION_SET 是推断的 Top-3 领域术语集合 (减小内存/算力开销),
+# 由 _humanize_protect.ProtectLayer.detect_domains + extract_protected_terms 生成.
+# 使用 threading.Lock 保证 CLI 单进程安全, 多线程场景需外部序列化。
+_USE_PROTECT_FLAG = False
+_PROTECTION_SET = set()
+_PROTECT_LOCK = __import__('threading').Lock()
+# best_of_n 递归调用时提示只打印一次
+_PROTECT_HINT_SHOWN = False
+
 _ACADEMIC_LR_MARKERS = (
     '本研究',
     '研究表明',
@@ -64,9 +76,125 @@ try:
 except ImportError:
     from scripts._text_utils import join_paragraphs, split_paragraphs
 
+try:
+    from dimension_router import diagnose_scores, route_strategy
+    _HAS_DIMENSION_ROUTER = True
+except ImportError:
+    _HAS_DIMENSION_ROUTER = False
+
+# rewrite_operations — 维普对齐 6 个新改写操作 (Phase 2, try/except 降级)
+# 注: rewrite_operations v2 已移除 jieba 依赖, 全部操作纯零依赖
+try:
+    from rewrite_operations import (
+        burstiness_engineering,
+        fragment_injection,
+        syntax_pattern_break,
+        info_density_rebalance,
+        punctuation_humanize,
+        ai_vocab_scrub,
+    )
+    _HAS_REWRITE_OPS = True
+except ImportError:
+    _HAS_REWRITE_OPS = False
+
+
+def _check_deps_detailed():
+    """检查 --adaptive 所需的所有可选依赖，返回状态字典。"""
+    deps = {
+        'jieba': False,
+        'jieba_posseg': False,
+        'numpy': False,
+        'linguistic_features': False,
+        'rewrite_operations': False,
+    }
+    try:
+        import jieba
+        deps['jieba'] = True
+        try:
+            import jieba.posseg as pseg
+            deps['jieba_posseg'] = True
+        except ImportError:
+            pass
+    except ImportError:
+        pass
+    try:
+        import numpy
+        deps['numpy'] = True
+    except ImportError:
+        pass
+    try:
+        from linguistic_features import diagnose_linguistic_features
+        deps['linguistic_features'] = True
+    except ImportError:
+        pass
+    try:
+        from rewrite_operations import burstiness_engineering
+        deps['rewrite_operations'] = True
+    except ImportError:
+        pass
+    return deps
+
+
+_WARNED_ADAPTIVE_DEPS = False
+
+
+def _check_adaptive_deps_and_warn():
+    """首次使用 --adaptive 时检查依赖并输出友好提示 (stderr, 仅一次)"""
+    global _WARNED_ADAPTIVE_DEPS
+    if _WARNED_ADAPTIVE_DEPS:
+        return
+    _WARNED_ADAPTIVE_DEPS = True
+
+    deps = _check_deps_detailed()
+
+    # 改写端 (rewrite_operations v2) 已纯零依赖, 6/6 操作不受外部库影响
+    # 仅检测端 (linguistic_features) 需要 jieba/numpy 做精确统计
+    detect_missing = []
+    if not deps['jieba'] or not deps['jieba_posseg']:
+        detect_missing.append('jieba')
+    if not deps['numpy']:
+        detect_missing.append('numpy')
+
+    if detect_missing:
+        print('', file=sys.stderr)
+        print('[humanize --adaptive] 提示:', file=sys.stderr)
+        print(f'  检测端可选依赖缺失: {", ".join(detect_missing)}', file=sys.stderr)
+        print('  改写端 6/6 操作全部纯零依赖, 不受影响。', file=sys.stderr)
+        print('  检测端 (linguistic_features) 会降级, _vipu_aligned_score 精度下降:', file=sys.stderr)
+        print('    - 无 jieba: 6/8 维度返回默认值, AUC 从 0.59 降至 0.41', file=sys.stderr)
+        print('    - 无 numpy: 统计计算走 Python 原生 fallback', file=sys.stderr)
+        print('  如需检测端最佳精度: pip install jieba numpy', file=sys.stderr)
+        print('  如只需改写效果: 无需安装任何外部依赖。', file=sys.stderr)
+        print('', file=sys.stderr)
+        sys.stderr.flush()
+
+
+def _print_dependency_status():
+    """--adaptive-deps: 打印完整依赖状态到 stdout"""
+    deps = _check_deps_detailed()
+    print('--adaptive 依赖状态检查')
+    print('=' * 40)
+    for name, ok in deps.items():
+        emoji = '✅' if ok else '❌'
+        print(f'  {emoji} {name}')
+    all_core = deps['linguistic_features'] and deps['rewrite_operations']
+    print()
+    if all_core:
+        jieba_ok = deps['jieba'] and deps['jieba_posseg']
+        if jieba_ok and deps['numpy']:
+            print('全部依赖就绪: 改写 6/6 + 检测端完整 (AUC≈0.59)')
+        elif jieba_ok:
+            print('jieba 已装, numpy 缺失: 改写 6/6 不受影响, 检测端走 numpy fallback')
+        else:
+            print('jieba 缺失: 改写 6/6 不受影响, 检测端降级 (AUC≈0.41, 仅作参考)')
+            print('  安装建议: pip install jieba numpy')
+    else:
+        print('核心模块缺失, --adaptive 将回退到 Baseline 行为')
+
+
 # Module-level flag: whether to use stats optimization (can be toggled by CLI)
 _USE_STATS = True
-PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'patterns_cn.json')
+PATTERNS_FILE = os.path.join(SCRIPT_DIR, 'weights', 'patterns_cn.json')
 
 def load_config():
     if os.path.exists(PATTERNS_FILE):
@@ -1572,9 +1700,21 @@ def reduce_high_freq_bigrams(text, strength=0.3, scene='general'):
             return default
 
         # Rebuild text by iterating occurrences back-to-front (avoid shifting positions)
+        # ── 术语保护: 排除位于受保护术语内部的 occurrence ──
+        _blocked_positions = set()
+        if _USE_PROTECT_FLAG and _PROTECTION_SET:
+            for t in _PROTECTION_SET:
+                if t == word:
+                    continue  # 保护词本身就是要替换的词时, 由上面的 preserve 处理
+                for m in re.finditer(re.escape(t), text):
+                    for p in range(m.start(), m.end()):
+                        _blocked_positions.add(p)
         for k in reversed(range(len(occurrences))):
             pos = occurrences[k]
             if k not in to_replace:
+                continue
+            # 术语保护: 跳过位于受保护术语内部的 occurrence
+            if pos in _blocked_positions:
                 continue
             # Word-boundary doubling guard: check next char in source after the
             # word being replaced. If alt ends with that char, swap to a
@@ -1662,8 +1802,18 @@ def _simple_synonym_pass(text, strength=0.3, scene='general'):
     n_replace = max(1, int(len(found) * strength))
     random.shuffle(found)
     replaced_positions = set()
+    # ── 术语保护: 预计算受保护位置集 ──
+    _blocked_positions = set()
+    if _USE_PROTECT_FLAG and _PROTECTION_SET:
+        for t in _PROTECTION_SET:
+            for m in re.finditer(re.escape(t), text):
+                for p in range(m.start(), m.end()):
+                    _blocked_positions.add(p)
     for word, pos in found[:n_replace]:
         if any(p in replaced_positions for p in range(pos, pos + len(word))):
+            continue
+        # 术语保护: 跳过位于受保护术语内部的 occurrence
+        if pos in _blocked_positions:
             continue
         candidates = _filter_candidates_for_scene(word, WORD_SYNONYMS[word], scene)
         if not candidates:
@@ -2315,7 +2465,8 @@ _ZAI_LOCATIVE_RE = re.compile(
 )
 
 
-def randomize_sentence_lengths(text, aggressive=False, seed=None):
+def randomize_sentence_lengths(text, aggressive=False, seed=None,
+                               merge_rate=None, truncate_rate=None):
     """
     策略2: 刻意制造不均匀的句子长度分布。
     - 随机选 20% 的短句保持极短
@@ -2340,8 +2491,10 @@ def randomize_sentence_lengths(text, aggressive=False, seed=None):
     if len(sentences) < 4:
         return text
 
-    merge_rate = 0.15 if not aggressive else 0.25
-    truncate_rate = 0.15 if not aggressive else 0.25
+    if merge_rate is None:
+        merge_rate = 0.15 if not aggressive else 0.25
+    if truncate_rate is None:
+        truncate_rate = 0.15 if not aggressive else 0.25
 
     result = []
     i = 0
@@ -3442,7 +3595,8 @@ def _format_best_of_debug(seed, scene_picked, lr_scores, secondary, rank_score,
 
 def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAULT_BEST_OF_N,
              style=None, debug_best_of_n=False, score_mode='lr',
-             secondary_weight=DEFAULT_SECONDARY_WEIGHT):
+             secondary_weight=DEFAULT_SECONDARY_WEIGHT, adaptive=False,
+             protect=False):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -3459,7 +3613,44 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     Rationale: HC3 benchmark showed that full pipeline on already-clean text
     (source score < 15) adds spurious AI patterns (段落均匀/熵低) via noise
     injection, sometimes INCREASING detected score. Tiered intensity avoids this.
+
+    protect: if True, load domain-term protection layer (_humanize_protect)
+    and skip synonym replacement inside protected terms. Reduces mis-substitution
+    on domain vocabulary (e.g. 数据隐私 → 数额隐私). Mini dict (68K terms) ships
+    offline; full domain-aware mode needs scripts/data/DomainWordsDict/ (see
+    download_full_dict.py). Protection set is inferred to Top-3 domains to bound
+    memory/compute.
     """
+    # ── 术语保护: 构建保护集 (Top-3 领域, 减小内存/算力) ──
+    # Guards recompute blocked positions from current text at each check
+    # because prior passes (restructure, merge, split) shift character positions.
+    global _USE_PROTECT_FLAG, _PROTECTION_SET
+    _PROTECTION_SET = set()
+    _USE_PROTECT_FLAG = False
+    if protect:
+        try:
+            from _humanize_protect import get_layer as _get_protect_layer
+        except ImportError:
+            _get_protect_layer = None
+        if _get_protect_layer:
+            _layer = _get_protect_layer()
+            if _layer.is_ready():
+                with _PROTECT_LOCK:
+                    # Top-3 领域推断 (mini 模式返回全部匹配, full 模式按领域+权重)
+                    _PROTECTION_SET = _layer.extract_protected_terms(text, domains_or_top_n=3)
+                    _USE_PROTECT_FLAG = bool(_PROTECTION_SET)
+            else:
+                 # mini_dict.json 不存在时给出提示 (P8, 仅首次)
+                  global _PROTECT_HINT_SHOWN
+                  if not _PROTECT_HINT_SHOWN:
+                      _PROTECT_HINT_SHOWN = True
+                      import sys as _sys
+                      print('提示: --protect 需要术语保护词典, 当前未找到, 已跳过.\n'
+                            '  获取: python scripts/download_full_dict.py --mini\n'
+                            '  或从 protect-terms-simple 分支复制 scripts/data/mini_dict.json '
+                            '到本项目的 scripts/data/',
+                            file=_sys.stderr)
+
     if best_of_n and best_of_n > 1:
         try:
             from ngram_model import compute_lr_score
@@ -3479,7 +3670,8 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         for i in range(best_of_n):
             s = base_seed + i
             out = humanize(text, scene=scene, aggressive=aggressive,
-                           seed=s, best_of_n=None, style=style)
+                           seed=s, best_of_n=None, style=style, adaptive=adaptive,
+                           protect=protect)
             lr_scene = _pick_lr_scene(out)
             if lr_scene == 'longform':
                 out = _apply_longform_mutation_profile(
@@ -3536,6 +3728,15 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     else:
         tier = 'conservative'
 
+    # ── Adaptive dimension-aware routing ──
+    route = None
+    if adaptive and _HAS_DIMENSION_ROUTER:
+        try:
+            dim_scores = diagnose_scores(text)
+            route = route_strategy(dim_scores['dims'], tier=tier)
+        except Exception:
+            route = None
+
     # Pass 1: Structure cleanup — always run (safe, targeted)
     text = remove_three_part_structure(text)
     text = replace_phrases(text, casualness)
@@ -3550,7 +3751,16 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             deep_restructure = None
     if deep_restructure:
         # Conservative keeps restructure but with aggressive=False to be gentler
-        text = deep_restructure(text, aggressive=aggressive, scene=scene)
+        if route and route['ops'].get('deep_restructure'):
+            dr_ops = route['ops']['deep_restructure']
+            dr_strength = dr_ops.get('strength')
+            dr_delete_prob = dr_ops.get('delete_prob')
+            # Skip operation if all params are zero
+            if dr_strength != 0 or dr_delete_prob != 0:
+                text = deep_restructure(text, aggressive=aggressive, scene=scene,
+                                        strength=dr_strength, delete_prob=dr_delete_prob)
+        else:
+            text = deep_restructure(text, aggressive=aggressive, scene=scene)
 
     # Pass 2b: Sentence merge/split
     if config.get('merge_short', False):
@@ -3576,27 +3786,34 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     # ── Perplexity-boosting strategies — tier-gated ──
     # Bigram substitution active in moderate+full (safe, targeted)
     if tier != 'conservative':
-        bigram_strength = 0.5 if aggressive else 0.3
-        if tier == 'moderate':
-            bigram_strength *= 0.6
+        if route and route['ops'].get('phrase_replace'):
+            bigram_strength = route['ops']['phrase_replace']['bigram_strength']
+        else:
+            bigram_strength = 0.5 if aggressive else 0.3
+            if tier == 'moderate':
+                bigram_strength *= 0.6
         # Route bigram substitution through the novel-register filter when
         # --style novel is active. NOVEL_BLACKLIST_CANDIDATES strips the
         # overtly colloquial / book-Chinese substitutes ('搞'/'拉高'/'业已'/
         # '早就') that break narrative register, while keeping
         # ('察觉'/'识破') that academic mode rejects.
         bigram_scene = 'novel' if style == 'novel' else scene
-        text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=bigram_scene)
+        if bigram_strength > 0:
+            text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=bigram_scene)
 
     # Noise + sentence randomization only at full tier — these are the operations
     # that on HC3 sometimes added spurious AI patterns to already-clean text.
     if tier == 'full' and _USE_NOISE:
-        noise_density = 0.25 if aggressive else 0.15
+        if route and route['ops'].get('noise_injection'):
+            noise_density = route['ops']['noise_injection']['density']
+        else:
+            noise_density = 0.25 if aggressive else 0.15
         # Novel/fiction register: noise injection (regardless of expression
         # subset) frequently lands on prepositional or vocative sentence heads
         # ('作为...' / '人物名+verb') and reads as awkward. Lean on word
         # substitutions + transition cap + paraphrase replacement for delta
         # in novel mode instead.
-        if style != 'novel':
+        if style != 'novel' and noise_density > 0:
             # Cycle 104: route academic scene through NOISE_ACADEMIC_EXPRESSIONS
             # subset (hedging / self_correction / uncertainty). Cycle 54 tried
             # this and lost -2 academic hero, but cycles 76-101 since cleaned
@@ -3606,7 +3823,16 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
             # '讲真' / '约莫' / '估摸着') that read off-register.
             noise_style = 'academic' if scene == 'academic' else 'general'
             text = inject_noise_expressions(text, density=noise_density, style=noise_style)
-        text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
+        if route and route['ops'].get('sentence_len_randomize'):
+            slr_ops = route['ops']['sentence_len_randomize']
+            slr_merge_rate = slr_ops.get('merge_rate')
+            slr_truncate_rate = slr_ops.get('truncate_rate')
+            if slr_merge_rate != 0 or slr_truncate_rate != 0:
+                text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed,
+                                                   merge_rate=slr_merge_rate,
+                                                   truncate_rate=slr_truncate_rate)
+        else:
+            text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
 
     # v5 P1 humanize counter-measure for stat_low_para_sent_len_cv. The
     # truncation variant (boost_para_sent_len_cv) was shelved because
@@ -3669,6 +3895,76 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         text = re.sub(r'\u6781\u5ea6', '', text)
         text = re.sub(r'\u5c24\u4e3a', '', text)
         text = re.sub(r'\u9887\u4e3a', '', text)
+
+    # ── Pass 5: 维普对齐新改写操作 (Phase 2, try/except 降级集成) ──
+    # 6 个新操作: burstiness_engineering, fragment_injection, syntax_pattern_break,
+    # info_density_rebalance, punctuation_humanize, ai_vocab_scrub
+    # adaptive=True 时启用新操作并用 route 参数；adaptive=False 时跳过新操作 (保持原行为)
+    if _HAS_REWRITE_OPS and adaptive:
+        # adaptive 模式: 强制启用所有新操作，至少 0.3 强度
+        _ro_defaults = {
+            'burstiness_engineering': 0.5,
+            'fragment_injection': 0.3,
+            'syntax_pattern_break': 0.4,
+            'info_density_rebalance': 0.3,
+            'punctuation_humanize': 0.4,
+            'ai_vocab_scrub': 0.6,
+        }
+        # 从 route 获取参数 (若可用)，但强制不低于 0.3 以确保有改写效果
+        _ro_params = {}
+        if route and 'ops' in route:
+            for _op_name in _ro_defaults:
+                _op_cfg = route['ops'].get(_op_name, {})
+                _route_val = _op_cfg.get('intensity', 0.0)
+                # 取 route 值和默认值的较大者，确保至少有默认强度
+                _ro_params[_op_name] = max(_route_val, _ro_defaults[_op_name])
+        else:
+            _ro_params = dict(_ro_defaults)
+
+        # 应用改写操作 (按顺序: 句式 → 密度 → 突发性 → 碎片 → 标点 → 词汇)
+        # 1. 句式模式打破 (纯字符串规则, 无外部依赖)
+        if _ro_params.get('syntax_pattern_break', 0) > 0:
+            try:
+                text = syntax_pattern_break(text, intensity=_ro_params['syntax_pattern_break'], seed=seed)
+            except Exception:
+                pass
+
+        # 2. 信息密度再平衡
+        if _ro_params.get('info_density_rebalance', 0) > 0:
+            try:
+                text = info_density_rebalance(text, intensity=_ro_params['info_density_rebalance'], seed=seed)
+            except Exception:
+                pass
+
+        # 3. 突发性工程
+        if _ro_params.get('burstiness_engineering', 0) > 0:
+            try:
+                text = burstiness_engineering(text, intensity=_ro_params['burstiness_engineering'], seed=seed)
+            except Exception:
+                pass
+
+        # 4. 碎片注入
+        if _ro_params.get('fragment_injection', 0) > 0:
+            try:
+                text = fragment_injection(text, intensity=_ro_params['fragment_injection'], seed=seed)
+            except Exception:
+                pass
+
+        # 5. 标点人性化
+        if _ro_params.get('punctuation_humanize', 0) > 0:
+            try:
+                text = punctuation_humanize(text, intensity=_ro_params['punctuation_humanize'], seed=seed)
+            except Exception:
+                pass
+
+        # 6. AI 词汇指纹清除 (带术语保护)
+        if _ro_params.get('ai_vocab_scrub', 0) > 0:
+            try:
+                _prot = _PROTECTION_SET if _USE_PROTECT_FLAG else None
+                text = ai_vocab_scrub(text, intensity=_ro_params['ai_vocab_scrub'],
+                                      seed=seed, protected_set=_prot)
+            except Exception:
+                pass
 
     # Clean up artifacts
     text = re.sub(r'[，,]{2,}', '，', text)  # Remove double commas
@@ -3753,8 +4049,27 @@ def main():
                        help='快速模式（= --no-stats --no-noise），只跑短语替换 + 结构清理')
     parser.add_argument('--cilin', action='store_true',
                        help='用 CiLin 同义词词林扩展候选（~40K 词 vs 手工 200 词）')
+    parser.add_argument('--adaptive', action='store_true',
+                        help='启用维度感知策略路由 (根据各维度AI得分定向分配改写强度)。'
+                             '建议 pip install jieba numpy 获得检测端最佳效果; 改写端零依赖不受影响。')
+    parser.add_argument('--adaptive-deps', action='store_true',
+                        help='仅检测 --adaptive 所需依赖状态，不执行改写')
+    parser.add_argument('--protect', action='store_true',
+                        help='启用术语保护层 (基于 _humanize_protect 的 68K 术语词典), '
+                             '跳过位于受保护领域术语内部的同义词替换, '
+                             '避免 数据隐私→数额隐私 类误替换。'
+                             '需 scripts/data/mini_dict.json (见 download_full_dict.py)。')
 
     args = parser.parse_args()
+
+    # --adaptive-deps: 仅检测依赖状态
+    if getattr(args, 'adaptive_deps', False):
+        _print_dependency_status()
+        sys.exit(0)
+
+    # --adaptive 时首次检查依赖并友好提示 (写入 stderr 不干扰管道输出)
+    if args.adaptive:
+        _check_adaptive_deps_and_warn()
 
     # Toggle stats optimization
     global _USE_STATS
@@ -3788,7 +4103,9 @@ def main():
                        best_of_n=args.best_of_n, style=args.style,
                        debug_best_of_n=args.debug_best_of_n,
                        score_mode=args.score_mode,
-                       secondary_weight=args.secondary_weight)
+                       secondary_weight=args.secondary_weight,
+                       adaptive=args.adaptive,
+                       protect=args.protect)
     
     # Apply style if specified
     if args.style:

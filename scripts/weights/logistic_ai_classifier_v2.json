@@ -1,0 +1,162 @@
+{
+  "model_type": "logistic_regression",
+  "version": "2.0",
+  "description": "AI 文本检测二分类器 (225 篇训练, 含 MNBVC 多子集)",
+  "feature_names": [
+    "syntax_similarity",
+    "mdd_mean",
+    "coherence_mean",
+    "coherence_variance",
+    "ttr_global",
+    "ttr_variance",
+    "lexical_entropy",
+    "comma_period_ratio",
+    "punctuation_variance",
+    "density_variance",
+    "semantic_jump_std",
+    "ai_vocab_density",
+    "fingerprint_score"
+  ],
+  "means": [
+    0.02748,
+    3.958364,
+    0.202119,
+    0.024288,
+    0.489946,
+    0.008747,
+    7.146676,
+    1.993644,
+    0.482778,
+    0.01457,
+    0.122408,
+    8.045089,
+    0.445528
+  ],
+  "stds": [
+    0.017727,
+    0.513811,
+    0.200486,
+    0.02726,
+    0.176568,
+    0.010378,
+    0.964557,
+    0.722377,
+    0.22403,
+    0.019539,
+    0.052203,
+    9.610131,
+    0.292447
+  ],
+  "weights": [
+    -0.033929,
+    -0.20775,
+    0.344391,
+    0.967002,
+    -0.003041,
+    -0.809976,
+    0.67498,
+    -1.004165,
+    -1.014128,
+    -1.729667,
+    -0.67704,
+    0.406841,
+    0.219552
+  ],
+  "bias": -0.034926,
+  "threshold": 0.5,
+  "training_data": {
+    "n_total": 225,
+    "n_short": 105,
+    "n_long": 120,
+    "n_ai": 125,
+    "n_human": 100,
+    "sources": {
+      "short (C-ReD + examples)": 105,
+      "mnbvc_blog": 40,
+      "mnbvc_wiki": 10,
+      "mnbvc_news": 10,
+      "mnbvc_book": 20,
+      "longwriter_6k": 40
+    }
+  },
+  "inference": {
+    "formula": "score = bias + sum(weights[i] * (x[i] - means[i]) / stds[i])",
+    "probability": "p_ai = 1 / (1 + exp(-score))",
+    "score_0_100": "vipu_score = p_ai * 100"
+  },
+  "metrics": {
+    "train_accuracy": 0.8978,
+    "train_auc": 0.9559,
+    "train_pair_win_rate": 0.9559,
+    "loo_cv_accuracy": 0.8756,
+    "loo_cv_auc": 0.9298,
+    "loo_cv_pair_win_rate": 0.9298
+  },
+  "feature_importance": [
+    {
+      "feature": "density_variance",
+      "weight": -1.7297,
+      "abs_weight": 1.7297
+    },
+    {
+      "feature": "punctuation_variance",
+      "weight": -1.0141,
+      "abs_weight": 1.0141
+    },
+    {
+      "feature": "comma_period_ratio",
+      "weight": -1.0042,
+      "abs_weight": 1.0042
+    },
+    {
+      "feature": "coherence_variance",
+      "weight": 0.967,
+      "abs_weight": 0.967
+    },
+    {
+      "feature": "ttr_variance",
+      "weight": -0.81,
+      "abs_weight": 0.81
+    },
+    {
+      "feature": "semantic_jump_std",
+      "weight": -0.677,
+      "abs_weight": 0.677
+    },
+    {
+      "feature": "lexical_entropy",
+      "weight": 0.675,
+      "abs_weight": 0.675
+    },
+    {
+      "feature": "ai_vocab_density",
+      "weight": 0.4068,
+      "abs_weight": 0.4068
+    },
+    {
+      "feature": "coherence_mean",
+      "weight": 0.3444,
+      "abs_weight": 0.3444
+    },
+    {
+      "feature": "fingerprint_score",
+      "weight": 0.2196,
+      "abs_weight": 0.2196
+    },
+    {
+      "feature": "mdd_mean",
+      "weight": -0.2078,
+      "abs_weight": 0.2078
+    },
+    {
+      "feature": "syntax_similarity",
+      "weight": -0.0339,
+      "abs_weight": 0.0339
+    },
+    {
+      "feature": "ttr_global",
+      "weight": -0.003,
+      "abs_weight": 0.003
+    }
+  ]
+}
