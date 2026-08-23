@@ -28,7 +28,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SUBCOMMANDS = {
     'detect':   ('detect_cn.py',   'AI 痕迹检测 (0-100)'),
-    'rewrite':  ('humanize_cn.py', '通用去 AI 味改写'),
+    'rewrite':  ('rewrite_cn.py',  '去 AI 腔改写（v6 三段流水线；--legacy 回到 v5）'),
+    'write':    ('rewrite_cn.py',  '按写作要求从零写一篇不带 AI 腔的中文'),
     'academic': ('academic_cn.py', '学术论文 AIGC 降重（11 维度）'),
     'style':    ('style_cn.py',    '8 种风格转换（含小说/小红书/知乎/微博等）'),
     'compare':  ('compare_cn.py',  '改写前后对比'),
@@ -37,6 +38,7 @@ SUBCOMMANDS = {
 
 ALIASES = {
     'humanize': 'rewrite',
+    'legacy':   'rewrite',
     'rewrite_cn': 'rewrite',
     'acad':     'academic',
     'paper':    'academic',
@@ -51,7 +53,8 @@ Usage:
 
 Subcommands:
   detect     AI 痕迹检测 (0-100)
-  rewrite    通用去 AI 味改写
+  rewrite    去 AI 腔改写（v6 三段流水线；--legacy 回到 v5 旧改写器）
+  write      按写作要求从零写一篇不带 AI 腔的中文
   academic   学术论文 AIGC 降重（11 维度）
   style      8 种风格转换（含小说/小红书/知乎/微博等）
   compare    改写前后对比
@@ -59,7 +62,10 @@ Subcommands:
 
 Examples:
   humanize detect 论文.txt
-  humanize rewrite text.txt -o clean.txt --quick
+  humanize rewrite text.txt -o clean.txt              # 离线，只调断句节奏
+  humanize rewrite text.txt --llm -o clean.txt        # 加 LLM 定点去 AI 腔
+  humanize write "写一篇讲复利的科普" -o out.txt        # 从零写
+  humanize rewrite text.txt --legacy --quick          # v5 旧改写器（已弃用）
   humanize academic 论文.txt -o 改后.txt --compare
   humanize style text.txt --style xiaohongshu -o xhs.txt
   humanize compare text.txt -a
@@ -101,7 +107,10 @@ def main(argv=None):
         sys.stderr.write(f'error: missing backing script {target}\n')
         return 3
 
-    cmd = [sys.executable, target, *argv[1:]]
+    rest = argv[1:]
+    if sub == 'write' and rest and not rest[0].startswith('-'):
+        rest = ['--write', *rest]
+    cmd = [sys.executable, target, *rest]
     try:
         proc = subprocess.run(cmd)
         return proc.returncode
