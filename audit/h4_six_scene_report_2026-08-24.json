@@ -1,0 +1,99 @@
+{
+ "academic": {
+  "ai_n": 50,
+  "ai_mean": 79.4,
+  "ai_chars": 825,
+  "human_n": 50,
+  "human_mean": 60.1,
+  "human_chars": 310,
+  "auc_raw": 0.805,
+  "matched": {
+   "auc": null,
+   "band": null,
+   "why": "长度分布重叠不足，无法做等长比较"
+  },
+  "verdict": "可用"
+ },
+ "general": {
+  "ai_n": 50,
+  "ai_mean": 52.3,
+  "ai_chars": 583,
+  "human_n": 50,
+  "human_mean": 26.4,
+  "human_chars": 343,
+  "auc_raw": 0.806,
+  "matched": {
+   "auc": null,
+   "band": [
+    456,
+    499
+   ],
+   "why": "长度分布重叠不足，无法做等长比较"
+  },
+  "verdict": "可用"
+ },
+ "social": {
+  "ai_n": 50,
+  "ai_mean": 20.3,
+  "ai_chars": 362,
+  "human_n": 50,
+  "human_mean": 10.8,
+  "human_chars": 327,
+  "auc_raw": 0.758,
+  "matched": {
+   "auc": 0.771,
+   "n_ai": 47,
+   "n_human": 29,
+   "band": [
+    286,
+    460
+   ]
+  },
+  "verdict": "可用"
+ },
+ "workplace": {
+  "ai_n": 50,
+  "ai_mean": 39.1,
+  "ai_chars": 506,
+  "human_n": 0,
+  "auc": null,
+  "verdict": "无人类对照"
+ },
+ "blog": {
+  "ai_n": 50,
+  "ai_mean": 25.5,
+  "ai_chars": 1790,
+  "human_n": 50,
+  "human_mean": 42.6,
+  "human_chars": 1206,
+  "auc_raw": 0.299,
+  "matched": {
+   "auc": 0.155,
+   "n_ai": 15,
+   "n_human": 22,
+   "band": [
+    1251,
+    1599
+   ]
+  },
+  "verdict": "接近盲猜"
+ },
+ "novel": {
+  "ai_n": 41,
+  "ai_mean": 15.6,
+  "ai_chars": 1767,
+  "human_n": 50,
+  "human_mean": 20.6,
+  "human_chars": 844,
+  "auc_raw": 0.42,
+  "matched": {
+   "auc": null,
+   "band": [
+    800,
+    983
+   ],
+   "why": "长度分布重叠不足，无法做等长比较"
+  },
+  "verdict": "接近盲猜"
+ }
+}

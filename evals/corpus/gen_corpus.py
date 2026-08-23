@@ -114,7 +114,14 @@ def main() -> int:
         nonlocal ok, fail
         sid, scene, model, topic, prompt = job
         try:
-            raw = chat(model, prompt, max_tokens=12000)
+            # Reasoning models spend part of the budget on hidden thinking and
+            # return empty content with finish_reason=length when it runs out.
+            # Observed 2026-08-24: 9 of 50 novel samples (1800 chars, the
+            # longest scene) died this way at 12000. Retry wider before failing.
+            try:
+                raw = chat(model, prompt, max_tokens=12000)
+            except Exception:
+                raw = chat(model, prompt, max_tokens=32000)
         except Exception as exc:  # noqa: BLE001
             log(f"  FAIL {sid}: {str(exc)[:160]}")
             fail += 1
