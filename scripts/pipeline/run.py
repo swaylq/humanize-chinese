@@ -64,13 +64,29 @@ def stage1_write(brief: str, *, scene: str, model: str, chars: int) -> str:
     return normalize_punct(raw)
 
 
-def stage2_rewrite(text: str, *, model: str, verbose: bool) -> tuple[str, str]:
+def stage2_rewrite(text: str, *, model: str, verbose: bool,
+                   fluency_gate: bool = True) -> tuple[str, str]:
     from stage2_rewrite import rewrite
-    return rewrite(text, model=model, verbose=verbose)
+    return rewrite(text, model=model, verbose=verbose,
+                   fluency_gate=fluency_gate)
 
 
 def stage3_polish(text: str) -> tuple[str, list[str]]:
     return rhythm.polish(text)
+
+
+def _stage3_damage(before: str, after: str) -> list[str]:
+    """Defects present after stage 3 that were not there before it ran."""
+    try:
+        import fluency
+    except Exception:  # noqa: BLE001
+        return []
+    post = fluency.judge(after)
+    if not post.get("votes") or not post["defects"]:
+        return []
+    pre = fluency.judge(before)
+    old = {d["quote"] for d in pre.get("defects", [])}
+    return [d["quote"] for d in post["defects"] if d["quote"] not in old]
 
 
 def main() -> int:
@@ -86,6 +102,8 @@ def main() -> int:
     ap.add_argument("-m", "--model", default="anthropic/claude-opus-5")
     ap.add_argument("--trace", default=None, help="write a JSON trace here")
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument("--no-fluency-gate", action="store_true",
+                    help="跳过通顺度评审团（H1 的硬门槛，默认开启）")
     args = ap.parse_args()
 
     stages = args.stages or ("123" if args.brief else "23")
@@ -114,7 +132,8 @@ def main() -> int:
     if "2" in stages:
         before = text
         text, status = stage2_rewrite(text, model=args.model,
-                                      verbose=args.verbose)
+                                      verbose=args.verbose,
+                                      fluency_gate=not args.no_fluency_gate)
         text = normalize_punct(text)
         note(2, before, text,
              "定点去 AI 腔" if status == "rewritten" else "守卫未通过，保留原文")
@@ -124,12 +143,26 @@ def main() -> int:
         before = text
         text, edits = stage3_polish(text)
         ok = rhythm.verify_invariant(before, text)
+        if not ok:
+            print("stage 3 保义校验失败，已回退", file=sys.stderr)
+            text, edits = before, []
+
+        # The fluency jury lives inside stage 2, so until 2026-08-24 nothing
+        # judged stage 3's own output. It shipped four fragments in the H1
+        # acceptance run ("案例：在一个项目中。我们需要…"). The candidate guard is
+        # fixed, but a stage that edits text should be gated by the same jury
+        # that gates the stage before it. Only defects stage 3 INTRODUCED count,
+        # so inherited ones do not cause an endless revert.
+        if edits and not args.no_fluency_gate:
+            damage = _stage3_damage(before, text)
+            if damage:
+                print(f"stage 3 引入了病句，已回退：{'; '.join(damage)}",
+                      file=sys.stderr)
+                text, edits = before, []
+
         note(3, before, text,
              f"断句节奏 {len(edits)} 处改动，保义校验 {'通过' if ok else '失败'}"
              + (f"：{'; '.join(edits)}" if edits else ""))
-        if not ok:
-            print("stage 3 保义校验失败，已回退", file=sys.stderr)
-            text = before
 
     m = rhythm.metrics(text)
     if args.verbose:

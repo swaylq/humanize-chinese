@@ -81,6 +81,13 @@ SUBJECT_HEAD = [
     "这", "那", "其",
 ]
 
+# A short label plus a colon ("案例：", "反思：", "第一步：") prefixes the clause
+# without changing its grammar. Found on 2026-08-24 by the H1 fluency jury: the
+# dependent-head check ran against "案例：在一个项目中" and saw 案 rather than 在,
+# so 在...中 slipped through and stage 3 emitted "案例：在一个项目中。我们需要…".
+# Strip the label before testing what the clause actually starts with.
+_LABEL = re.compile(r"^[^，。；：、！？]{1,6}[：:]\s*")
+
 _PAIRED_OPEN = "「『（(《〈“‘\""
 _PAIRED_CLOSE = "」』）)》〉”’\""
 
@@ -180,6 +187,7 @@ def find_split_candidates(sentence: str) -> list[int]:
             continue
         # the clause before must not be the open half of a paired connective
         last_clause = re.split(r"[，；]", before)[-1].lstrip()
+        last_clause = _LABEL.sub("", last_clause).lstrip()
         if _starts_with(last_clause, SUBORDINATOR_HEAD):
             continue
         if _starts_with(last_clause, DEPENDENT_HEAD):

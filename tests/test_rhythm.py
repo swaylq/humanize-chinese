@@ -79,6 +79,27 @@ class SafetyTests(unittest.TestCase):
                     rhythm.find_split_candidates(s), [],
                     f"offered a fragment-producing split in: {s}")
 
+    def test_label_prefix_does_not_defeat_the_head_check(self):
+        # Regression: the H1 acceptance jury caught stage 3 emitting
+        # "案例：在一个项目中。我们需要开发一款新的移动应用". A short label plus a
+        # colon hid the dependent head from the guard.
+        for s in [
+            "案例：在一个项目中，我们需要开发一款新的移动应用来支撑业务。",
+            "反思：通过这个经验，我认识到产品愿景是决策的核心依据。",
+            "反思：在这个过程中，我学会了如何倾听不同团队的意见。",
+            "案例：在负责一个新产品的开发时，我发现市场竞争异常激烈。",
+        ]:
+            with self.subTest(s=s[:14]):
+                self.assertEqual(
+                    rhythm.find_split_candidates(s), [],
+                    f"label prefix let a fragment split through: {s}")
+
+    def test_label_prefix_still_allows_safe_splits(self):
+        # The label must not make the whole sentence untouchable — only the
+        # head test changes.
+        s = "案例：这套方案在测试环境跑得很顺利，但是上线之后压力一大就出问题了。"
+        self.assertTrue(rhythm.find_split_candidates(s))
+
     def test_never_splits_inside_quotes(self):
         s = "他说「这个方案不行，我们再想想」，然后就挂了电话没有再联系我们。"
         for i in rhythm.find_split_candidates(s):

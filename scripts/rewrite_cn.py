@@ -87,6 +87,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--chars", type=int, default=600, help="--write 的目标字数")
     ap.add_argument("-m", "--model", default="anthropic/claude-opus-5")
     ap.add_argument("--trace", help="把每段的输入输出写成 JSON")
+    ap.add_argument("--no-fluency-gate", action="store_true",
+                    help="跳过通顺度评审团（默认开启，是 H1 的硬门槛）")
     ap.add_argument("-q", "--quiet", action="store_true")
     ap.add_argument("--legacy", action="store_true",
                     help="改用 v5 旧改写器（已弃用，见上方说明）")
@@ -108,6 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             cmd += ["-o", args.output]
         if args.trace:
             cmd += ["--trace", args.trace]
+        if args.no_fluency_gate:
+            cmd += ["--no-fluency-gate"]
         if not args.quiet:
             cmd += ["-v"]
         return subprocess.run(cmd).returncode
