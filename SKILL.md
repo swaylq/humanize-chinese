@@ -1,20 +1,18 @@
 ---
 name: humanize-chinese
 description: >
-  Detect and humanize AI-generated Chinese text. 20+ rule detection categories plus statistical
-  features (sentence-length CV, short-sentence fraction, comma density, perplexity, GLTR, DivEye)
-  plus scene-aware LR fusion (rule × 0.2 + LR × 0.8) trained on three scenes: general / academic /
-  longform 长文本 (≥1500 字)。Unified CLI: ./humanize {detect,rewrite,academic,style,compare}.
-  8 style transforms (casual/zhihu/xiaohongshu/wechat/academic/literary/weibo/novel)。
-  Multi-paragraph rewriting (paragraph length CV、跨段 trigram 重复) plus best-of-N humanize
-  (默认 N=10 取最低 LR)。165 replacement patterns + CiLin 同义词词林 38873 with collision blacklist。
-  Academic paper AIGC reduction for CNKI/VIP/Wanfang (知网/维普/万方 AIGC 检测降重)。
-  Pure Python, no dependencies, offline。v5.0.0 — HC3 fused 准确率 95%、学术 hero 100→35 (-65)、
-  工作汇报 96→13 (-83)、长篇博客 96→41 (-55)。
-  Use when user says: "去AI味", "降AIGC", "人性化文本", "humanize chinese", "AI检测", "AIGC降重",
-  "去除AI痕迹", "文本改写", "论文降重", "知网检测", "维普检测", "AI写作检测", "让文字更自然",
-  "detect AI text", "humanize text", "reduce AIGC score", "make text human-like",
-  "去ai化", "改成人话", "去机器味", "降低AI率", "过AIGC检测", "长文本改写", "小说改写"
+  中文文章去 AI 腔。三段串联：LLM 按写作指南直接写出不带 AI 腔的初稿；LLM 定点拆掉
+  已有文本里的套话和模板句式；Python 只移动标点调整断句节奏（去标点后字符序列必须不变）。
+  离线那档零依赖零 API key，接大模型的两档需要 OPENROUTER_API_KEY。
+  统一 CLI: ./humanize {detect,rewrite,write,academic,style,compare}。
+  每次改写过两道关：事实关（数字/专名/段落数少一个就打回）+ 通顺关（三模型评审，
+  两票以上指出同一病句就打回，三次不过原样返回）。五份样本实测通顺度 4.0-5.0、零病句。
+  ⚠️ 本工具**不以压低检测分为目标**，原因见下方「关于检测分」一节 —— 那个分数在
+  2026 年的模型上已接近失效，在长文场景方向甚至是反的。
+  Use when user says: "去AI味", "降AIGC", "人性化文本", "humanize chinese", "AI检测",
+  "AIGC降重", "去除AI痕迹", "文本改写", "论文降重", "知网检测", "维普检测", "AI写作检测",
+  "让文字更自然", "detect AI text", "humanize text", "make text human-like",
+  "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写"
 allowed-tools:
   - Read
   - Write
@@ -22,28 +20,39 @@ allowed-tools:
   - exec
 ---
 
-# Humanize Chinese AI Text v5.0
+# Humanize Chinese AI Text v6
 
 检测和改写中文 AI 生成文本的完整工具链。可独立运行（统一 CLI 或独立脚本），也可作为 LLM prompt 指南使用。
 
-**v5.0 亮点：** scene-aware 三路 LR 融合 (general / academic / longform)；HC3 fused 准确率 95%；新增 `--scene novel/auto` 长文本场景；新增 `--style novel` 长篇叙事；`--best-of-n N` (默认 10) 多次 humanize 取最低 LR；段落级信号 (paragraph length CV / 跨段 trigram 重复) + 反制改写。
+**v6 的核心变化：改写目标从「压低检测分」换成「改完读起来像人写的」。**
+上一版为了压分去乱换同义词、插入过渡句、打乱句序，分数降得多，但写出的是病句
+（三模型评审：通顺度 2.0/5，每份样本 5-17 处病句）。v6 三段串联、两道关把守，
+同样五份样本 4.0-5.0、零病句。旧行为仍可用：`--legacy`。
 
 ## CLI Tools
 
 ### 统一 CLI（推荐）
 
 ```bash
-./humanize detect 文本.txt -v                              # 检测 + 详细
-./humanize detect 章节.txt --scene novel                   # 长文本/小说显式 scene
-./humanize detect 稿件.txt --scene auto                    # 按长度自动切 (≥1500 走 longform LR)
-./humanize rewrite 文本.txt -o 改后.txt                    # 改写（默认 best-of-10）
-./humanize rewrite 文本.txt -o 改后.txt --best-of-n 5      # 自调 best-of-N
-./humanize rewrite 文本.txt -o 改后.txt --quick            # 快速模式（跳统计/best-of）
-./humanize academic 论文.txt -o 改后.txt --compare          # 学术降重 + 双评分对比
-./humanize style 章节.txt --style novel                    # 长篇叙事专属 (剔除 AI prompt artifact + markdown headers)
-./humanize style 文本.txt --style xiaohongshu              # 风格转换
-./humanize compare 文本.txt -a                              # 前后对比
+# 三档改写，按手上有什么选
+./humanize rewrite 文本.txt -o 改后.txt              # 离线，只调断句节奏，零 API key
+./humanize rewrite 文本.txt --llm -o 改后.txt        # 加 LLM 定点拆套话（需 key）
+./humanize write "写一篇讲复利的科普" -o 出稿.txt      # 从零写一篇本来就没 AI 腔的（需 key）
+./humanize rewrite 文本.txt --legacy                 # 旧版纯规则改写（已弃用，会写病句）
+
+# 检测与其它
+./humanize detect 文本.txt -v                        # 检测 + 详细（分数怎么看见下方说明）
+./humanize academic 论文.txt -o 改后.txt --compare    # 学术降重
+./humanize style 文本.txt --style xiaohongshu        # 风格转换
+./humanize compare 文本.txt -a                       # 前后对比
 ```
+
+**离线那档很保守**：只移动标点，去掉标点后前后文字必须一模一样，程序每次都校验。
+找不到能安全断开的位置时它会直接说「没有可以安全修改的地方」并原样输出 ——
+这是设计，不是失败。AI 写的句子结构均匀，硬断会产生残句。
+
+**需要 key 的两档**走 OpenRouter：
+`secret exec OPENROUTER_API_KEY -- ./humanize rewrite 文件.txt --llm`
 
 ### 独立脚本形式（等价）
 
@@ -129,11 +138,17 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - DivEye skew / kurt: d = 0.41 / 0.29
 - 逗号密度: d = -0.47
 
-**v5.0 100 样本回归测试 (HC3 fused)**：95% 正确分离率 / 55.0 分差距 / +40.5 平均降幅 / 100% 段落保留 / 0 grammar defect。
+⚠️ 上面这些效应量测于 HC3（2022 年的 ChatGPT 语料）。2026-08 用五个当前模型重测，同题同长度对照下：区分 2024 年模型准确率 96%，区分今年的模型只剩 64%（瞎猜 50%）。**这些 d 值对 HC3 仍然成立，但不能外推到今天的模型。**
 
-**长文本 170 样本回归 (longform benchmark)**：gap 51.4 / avg delta +25.1 / 段留 98.8%。By genre：academic +13.8 / news +18.8 / blog +36.3 / novel +19.5 / review +31.8。
+**v6 实测（五份样本，三模型通顺度评审 1-5 分）**：
 
-**Hero 样本**（best-of-10, seed=42）：academic 100→35 (-65) / 通用 100→35 (-65) / 小红书 100→41 (-59) / 长篇博客 96→41 (-55) / 工作汇报 96→13 (-83)。
+| | 通顺度中位数 | 多数票病句 |
+|---|---|---|
+| v6 三段流水线 | 4.0 - 5.0 | **0 处** |
+| 旧版纯规则改写 | 2.0 | 5 - 17 处 |
+
+旧版被三个评审各自独立点出的句子，例如「智能评估系统能够各个层面地评判学习者的综合素质」
+「整合人工智能与教育教学已成为更好地推进的必由之路」—— 这些不是中文。
 
 ---
 
@@ -262,24 +277,45 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - **打破结构均匀度：**
   调整段落长度，避免每段都一样。合并过短的段落，拆分过长的。
 
-### 第四步：验证
+### 第四步：验证 —— 验的是通顺，不是分数
 
-改写完成后，用 CLI 工具验证效果：
+改写完成后先自己读一遍，逐条过：
+
+1. **事实核对**：原文每一个数字、单位、年份、人名、地名、专有名词，改后还在吗？
+   少一个就把那句还原。
+2. **信息核对**：原文说过的每件事，改后还说了吗？删掉的应该只有套话。
+3. **通顺核对**：改动过的每一句单独读一遍。有搭配不当、成分残缺、前后不接的，
+   把那句还原。**宁可不改，也不写病句。**
+4. **平庸化核对（反向）**：段落是不是变薄了？句子是不是整体变短且变齐了？
+   原文里锋利的判断是不是被磨成了中性说明书？中了任意一条就回滚。
+
+想看检测分可以跑，但**不要把它当验收标准**：
 
 ```bash
 ./humanize detect output.txt -s
 ```
 
-目标（基于 v5.0 fused 检测器，best-of-10 humanize）：
-- 通用文本降到 35 分以下（LOW 区间）
-- 学术论文降到 35 分以下（学术专用 + 通用评分均低）
-- 长篇博客/小说（≥1500 字）降到 41 分左右（MEDIUM）
-- 真实 ChatGPT 短输出 baseline 通常已在 5-25 分，改写后再降 3-10 分
-- 刻板化 AI 样板文 (论文模板/八股) 可以看到 60-83 分降幅
-
-注：v5.0 fused 评分融合了 LR ensemble (rule × 0.2 + LR × 0.8)，相同文本的分数会比 v3.x rule-only 更准。`--rule-only` 可降级到纯规则视图。
-
 ---
+
+## 关于检测分
+
+这个工具带一个 0-100 的检测分。**不要以压低它为目标。** 三条实测：
+
+**一、真人写的论文也会被判成 AI。** 60 篇真实知网论文摘要（发表早于大模型），
+平均 60 分，35% 落在「几乎确定是 AI」档。中文学术论文本来就爱写「综上所述」
+「与此同时」，检测器分不出这是文体还是机器。上面那张评分标准表的档位名称，
+在学术和长文场景下不准。
+
+**二、对 2026 年的模型基本失效。** 同题同长度对照：区分 2024 年的模型准确率 96%，
+区分今年的模型只剩 64%，瞎猜是 50%。
+
+**三、长文场景方向是反的。** 50 篇模型写的博客 vs 50 篇真人写的博客，
+**真人那批分数反而更高**。拿它筛长文，它会让你去改真人写的文章、放过模型写的。
+
+外面的商用检测器也一样不稳：同一批文字有的工具给 0 分、有的给 99.9 分。
+
+**所以：把检测分当参考信号可以，当优化目标不行。** 上一版为了压分去乱换同义词、
+插入过渡句、打乱句序，分数确实降得多，代价是写出不是中文的句子。
 
 ## 配置说明
 
