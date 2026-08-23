@@ -81,10 +81,10 @@ def _stage3_damage(before: str, after: str) -> list[str]:
         import fluency
     except Exception:  # noqa: BLE001
         return []
-    post = fluency.judge(after)
+    post = fluency.judge_confirmed(after)
     if not post.get("votes") or not post["defects"]:
         return []
-    pre = fluency.judge(before)
+    pre = fluency.judge_confirmed(before)
     old = {d["quote"] for d in pre.get("defects", [])}
     return [d["quote"] for d in post["defects"] if d["quote"] not in old]
 

@@ -122,7 +122,7 @@ def _judge(text: str):
     """Run the fluency jury, tolerating a jury outage rather than blocking."""
     try:
         import fluency
-        v = fluency.judge(text)
+        v = fluency.judge_confirmed(text)
         return v if v.get("votes") else None
     except Exception as exc:  # noqa: BLE001
         print(f"  通顺度评审团不可用，跳过该门（{str(exc)[:100]}）", file=sys.stderr)

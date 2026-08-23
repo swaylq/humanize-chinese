@@ -57,15 +57,62 @@ PROMPT = """你是中文母语的文字编辑。下面这段中文需要你判�
 ---"""
 
 
-def judge_one(model: str, text: str) -> dict | None:
-    try:
-        d = parse_json_loose(chat(model, PROMPT.format(text=text),
-                                  max_tokens=8000))
-        return {"model": model, "score": int(d.get("score", 0)),
-                "defects": [str(x) for x in (d.get("defects") or [])]}
-    except Exception as exc:  # noqa: BLE001
-        sys.stderr.write(f"  jury {model} failed: {str(exc)[:140]}\n")
-        return None
+def judge_one(model: str, text: str, retries: int = 2) -> dict | None:
+    # A juror that returns malformed JSON silently shrinks the panel, which
+    # lowers the majority threshold — observed 2026-08-24 when deepseek emitted
+    # a truncated object and long_blog was then judged by two models instead of
+    # three. Retry before dropping anyone.
+    last = None
+    for _ in range(retries):
+        try:
+            d = parse_json_loose(chat(model, PROMPT.format(text=text),
+                                      max_tokens=8000))
+            return {"model": model, "score": int(d.get("score", 0)),
+                    "defects": [str(x) for x in (d.get("defects") or [])]}
+        except Exception as exc:  # noqa: BLE001
+            last = exc
+    sys.stderr.write(f"  jury {model} failed: {str(last)[:140]}\n")
+    return None
+
+
+def judge_confirmed(text: str, jury: list[str] | None = None) -> dict:
+    """judge(), but a marginal pass is confirmed by a second round.
+
+    Measured 2026-08-24 on one stage-2 output: judging the same unchanged text
+    four times gave a real collocation error ("做出了更具竞争力的解决方案") in
+    three runs and a clean sheet in one. A single round therefore misses a real
+    defect about a quarter of the time, which is how that sentence passed the
+    gate and then failed the acceptance judge on identical text.
+
+    A clean, confident verdict (median >= 5.0, no defects, no singleton flags)
+    ships on one round. Anything marginal gets a second, independent round and
+    the defects of both are unioned. Costs 3 extra calls only where it matters.
+    """
+    first = judge(text, jury)
+    confident = (first["median"] >= 5.0 and not first["defects"]
+                 and not first.get("singleton_flags"))
+    if confident or not first.get("votes"):
+        return first
+
+    second = judge(text, jury)
+    if not second.get("votes"):
+        return first
+
+    merged = list(first["defects"])
+    seen = {d["quote"] for d in merged}
+    for d in second["defects"]:
+        if d["quote"] not in seen:
+            merged.append(d)
+            seen.add(d["quote"])
+    median = min(first["median"], second["median"])
+    return {"median": median,
+            "scores": first["scores"] + second["scores"],
+            "votes": first["votes"] + second["votes"],
+            "defects": merged,
+            "singleton_flags": first.get("singleton_flags", 0)
+                               + second.get("singleton_flags", 0),
+            "rounds": 2,
+            "passed": median >= 4.0 and not merged}
 
 
 def judge(text: str, jury: list[str] | None = None) -> dict:

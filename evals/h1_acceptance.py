@@ -63,7 +63,7 @@ def main() -> int:
             s3 = s2
         (out_dir / f"v6_{path.name}").write_text(s3 + "\n", encoding="utf-8")
 
-        verdict = fluency.judge(s3)
+        verdict = fluency.judge_confirmed(s3)
         m = rhythm.metrics(s3)
 
         row = {
@@ -84,7 +84,7 @@ def main() -> int:
             if legacy:
                 (out_dir / f"v5_{path.name}").write_text(legacy + "\n",
                                                          encoding="utf-8")
-                lv = fluency.judge(legacy)
+                lv = fluency.judge_confirmed(legacy)
                 row["v5_median"] = lv["median"]
                 row["v5_defects"] = [d["quote"] for d in lv["defects"]]
                 row["v5_passed"] = lv["passed"]
