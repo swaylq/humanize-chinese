@@ -20,3 +20,6 @@ evals/compression_human_seed.txt
 
 # scripts/lr_coef_academic.json is checked in (2KB). To retrain on a
 # different corpus: python scripts/train_lr_academic.py
+
+# v6 generated corpora (regenerable via evals/corpus/gen_corpus.py)
+evals/corpus/*.jsonl
