@@ -135,8 +135,15 @@ def main() -> int:
         nonlocal ok, fail
         sid, model, topic, chars, pair_id = job
         try:
-            raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
-                       max_tokens=8000)
+            # Reasoning models spend part of the budget on hidden thinking and
+            # can return empty content with finish_reason=length. GLM-5.3 hit
+            # this on 3/20 abstracts at 8000; retry once with a bigger budget.
+            try:
+                raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
+                           max_tokens=16000)
+            except Exception:
+                raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
+                           max_tokens=32000)
         except Exception as exc:  # noqa: BLE001
             log(f"  FAIL {sid}: {str(exc)[:140]}")
             fail += 1
