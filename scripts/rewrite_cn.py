@@ -98,9 +98,11 @@ def main(argv: list[str] | None = None) -> int:
     # is exactly one implementation of the pipeline.
     if args.write or args.llm:
         if not os.environ.get("OPENROUTER_API_KEY"):
+            example = (f'./humanize write "{args.write}"' if args.write
+                       else f"./humanize rewrite {args.file or '<文件>'} --llm")
             sys.stderr.write(
                 "需要 OPENROUTER_API_KEY。用法：\n"
-                "  secret exec OPENROUTER_API_KEY -- ./humanize rewrite <文件> --llm\n")
+                f"  secret exec OPENROUTER_API_KEY -- {example}\n")
             return 2
         cmd = [sys.executable, str(ROOT / "scripts" / "pipeline" / "run.py"),
                "-m", args.model, "--scene", args.scene]
