@@ -73,8 +73,29 @@ DEPENDENT_HEAD = [
     "为了", "出于", "考虑到", "受限于", "得益于", "在",
 ]
 
-# Pronoun / demonstrative openings that mark a clause with its own subject.
-SUBJECT_HEAD = [
+# RETIRED 2026-08-24 — kept only so the tests can assert it is not consulted.
+#
+# The rule was: split before a clause that has its own subject ("…，我们…").
+# It produced a fragment in three consecutive acceptance runs, each time in a
+# new disguise, and each time I patched it narrowly:
+#
+#   run 5  通过优化业务流程。我们提升了工作效率       -> added DEPENDENT_HEAD
+#   run 7  案例：在一个项目中。我们需要开发…          -> stripped label prefixes
+#   run 9  用好这些数字化工具。我们能更高效地…        -> would need a 4th patch
+#
+# The third one is not a preposition and carries no label; it is a bare verb
+# phrase acting as the CONDITION for what follows ("use these tools well, and
+# we can…"). Chinese writes conditions, means, concessions and topics as bare
+# clauses in front of a subject-bearing main clause all the time, and telling
+# those apart from two real sentences needs parsing this module does not do.
+#
+# So the rule is gone rather than patched a fourth time. What remains — a
+# semicolon, or a comma before an explicit sentence-initial connective — has
+# never produced a fragment across all three runs. Stage 3 now makes fewer
+# edits; that is the correct trade, because the rhythm that matters comes from
+# stage 1 (measured: write-fresh reaches CV 0.62 while cleaning an AI draft
+# stalls at 0.31 no matter what stage 3 does).
+SUBJECT_HEAD_RETIRED = [
     "我们", "他们", "她们", "它们", "咱们", "大家",
     "我", "你", "您", "他", "她", "它",
     "这些", "那些", "这种", "那种", "这类", "该", "本文", "本研究",
@@ -162,10 +183,11 @@ def _starts_with(s: str, heads: list[str]) -> str | None:
 def find_split_candidates(sentence: str) -> list[int]:
     """Indices of commas inside `sentence` that may safely become full stops.
 
-    A comma qualifies when the clause before it can stand as a sentence and the
-    clause after it opens either with a sentence-initial connective or with its
-    own subject. Anything ambiguous is left alone — a missed split costs
-    nothing, a wrong split produces a fragment.
+    A comma qualifies only when the clause after it opens with an explicit
+    sentence-initial connective (但是 / 所以 / 另外 …), or when the mark is a
+    semicolon. Anything else is left alone — a missed split costs nothing, a
+    wrong split produces a fragment. See the note on SUBJECT_HEAD_RETIRED for
+    why "the next clause has a subject" is not a sufficient condition.
     """
     depths = _depth_map(sentence)
     out = []
@@ -198,7 +220,7 @@ def find_split_candidates(sentence: str) -> list[int]:
         if ch == "；":
             out.append(i)
             continue
-        if _starts_with(after, SENTENCE_INITIAL) or _starts_with(after, SUBJECT_HEAD):
+        if _starts_with(after, SENTENCE_INITIAL):
             out.append(i)
     return out
 

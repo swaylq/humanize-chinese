@@ -100,6 +100,25 @@ class SafetyTests(unittest.TestCase):
         s = "案例：这套方案在测试环境跑得很顺利，但是上线之后压力一大就出问题了。"
         self.assertTrue(rhythm.find_split_candidates(s))
 
+    def test_bare_verb_phrase_condition_is_not_split(self):
+        # Third fragment class, found by the run-9 acceptance jury:
+        # "用好这些数字化工具。我们能更高效地…" — the first clause is the
+        # CONDITION for the second, not a sentence.
+        for s in [
+            "用好这些数字化工具，我们能更高效地进行任务规划和进度追踪。",
+            "做好前期的需求调研，团队就不会在开发中途反复返工。",
+            "把这些细节都记录下来，后面复盘的时候会省很多力气。",
+        ]:
+            with self.subTest(s=s[:12]):
+                self.assertEqual(rhythm.find_split_candidates(s), [], s)
+
+    def test_subject_head_rule_is_retired(self):
+        # Pins the decision: a subject in the following clause is NOT on its
+        # own a reason to split. Three fragment bugs came from that rule.
+        self.assertFalse(hasattr(rhythm, "SUBJECT_HEAD"))
+        s = "团队完成了这一轮的全部开发工作，我们准备进入测试阶段了。"
+        self.assertEqual(rhythm.find_split_candidates(s), [])
+
     def test_never_splits_inside_quotes(self):
         s = "他说「这个方案不行，我们再想想」，然后就挂了电话没有再联系我们。"
         for i in rhythm.find_split_candidates(s):
