@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""H4 report — the detector's numbers across all six scenes, on 2026 corpora.
+
+    PYTHONHASHSEED=0 python3 evals/h4_report.py
+
+Prints, per scene: the human control's score distribution, the 2026 model
+panel's, and the AUC between them. AUC is the number that matters — a mean gap
+means nothing if the two distributions overlap, and the whole reason this
+report exists is that the v5 README quoted score drops measured on caricature
+inputs with no human control at all.
+
+Scenes without a human control (workplace) print their AI distribution and say
+plainly that no separation figure can be computed.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pathlib
+import statistics
+import sys
+from collections import defaultdict
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "evals" / "corpus"))
+os.environ.setdefault("PYTHONHASHSEED", "0")
+
+from detect_cn import calculate_score, detect_patterns  # noqa: E402
+from ngram_model import compute_lr_score  # noqa: E402
+from models import SHORT  # noqa: E402
+
+SCENES = ["academic", "general", "social", "workplace", "blog", "novel"]
+
+
+def fused(text: str) -> int:
+    issues, metrics = detect_patterns(text)
+    rule = calculate_score(issues, metrics)
+    lr = compute_lr_score(text)
+    return rule if lr is None else round(0.2 * rule + 0.8 * lr["score"])
+
+
+def auc(pos: list[float], neg: list[float]) -> float:
+    if not pos or not neg:
+        return float("nan")
+    wins = sum(1.0 if p > n else 0.5 if p == n else 0.0
+               for p in pos for n in neg)
+    return wins / (len(pos) * len(neg))
+
+
+def matched_subsets(ai: list[dict], human: list[dict],
+                    min_each: int = 15) -> tuple[list, list, tuple | None]:
+    """Restrict both sides to their overlapping length band.
+
+    Without this the AUC column measures length, not writing. Measured
+    2026-08-24: asking a model for an academic passage yields ~850 characters
+    while real CSL abstracts run ~310, and comparing them straight gives AUC
+    0.826 — against 0.645 for the same models on a properly length- and
+    topic-matched set. The bigger number is an artefact.
+    """
+    if not ai or not human:
+        return [], [], None
+    a_len = sorted(r["cn_chars"] for r in ai)
+    h_len = sorted(r["cn_chars"] for r in human)
+    lo, hi = max(a_len[0], h_len[0]), min(a_len[-1], h_len[-1])
+    if lo >= hi:
+        return [], [], None
+    a = [r for r in ai if lo <= r["cn_chars"] <= hi]
+    h = [r for r in human if lo <= r["cn_chars"] <= hi]
+    if len(a) < min_each or len(h) < min_each:
+        return [], [], (lo, hi)
+    return a, h, (lo, hi)
+
+
+def load(path: pathlib.Path) -> list[dict]:
+    if not path.exists():
+        return []
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ai", default="evals/corpus/ai2026_full.jsonl")
+    ap.add_argument("--corpus-dir", default="evals/corpus")
+    ap.add_argument("--json-out", default=None)
+    args = ap.parse_args()
+
+    cdir = pathlib.Path(args.corpus_dir)
+    ai_all = load(pathlib.Path(args.ai))
+    by_scene = defaultdict(list)
+    for r in ai_all:
+        by_scene[r["scene"]].append(r)
+
+    results = {}
+    print("\n" + "=" * 88)
+    print("H4：2026 五模型语料 vs 真人公开语料，逐场景")
+    print("=" * 88)
+    hdr = (f"{'场景':<11}{'AI篇数':>7}{'AI均分':>8}{'AI均长':>8}"
+           f"{'人类篇数':>9}{'人类均分':>9}{'人类均长':>9}{'AUC':>7}  判定")
+    print(hdr)
+    print("-" * 100)
+
+    for scene in SCENES:
+        ai = by_scene.get(scene, [])
+        human = load(cdir / f"human_{scene}.jsonl")
+        if not ai:
+            print(f"{scene:<11}{'（AI 语料缺失）'}")
+            continue
+
+        ai_s = [fused(r["text"]) for r in ai]
+        ai_len = statistics.mean(r["cn_chars"] for r in ai)
+
+        if human:
+            h_s = [fused(r["text"]) for r in human]
+            h_len = statistics.mean(r["cn_chars"] for r in human)
+            a = auc(ai_s, h_s)
+            verdict = ("强区分" if a >= 0.90 else "可用" if a >= 0.75
+                       else "弱" if a >= 0.65 else "接近盲猜")
+            print(f"{scene:<11}{len(ai_s):>7}{statistics.mean(ai_s):>8.1f}"
+                  f"{ai_len:>8.0f}{len(h_s):>9}{statistics.mean(h_s):>9.1f}"
+                  f"{h_len:>9.0f}{a:>7.3f}  {verdict}")
+            # the honest number: same length band on both sides
+            ma, mh, band = matched_subsets(ai, human)
+            if ma and mh:
+                m_auc = auc([fused(r["text"]) for r in ma],
+                            [fused(r["text"]) for r in mh])
+                matched = {"auc": round(m_auc, 3), "n_ai": len(ma),
+                           "n_human": len(mh), "band": list(band)}
+            else:
+                matched = {"auc": None, "band": list(band) if band else None,
+                           "why": "长度分布重叠不足，无法做等长比较"}
+            results[scene] = {
+                "ai_n": len(ai_s), "ai_mean": round(statistics.mean(ai_s), 1),
+                "ai_chars": round(ai_len), "human_n": len(h_s),
+                "human_mean": round(statistics.mean(h_s), 1),
+                "human_chars": round(h_len), "auc_raw": round(a, 3),
+                "matched": matched, "verdict": verdict,
+            }
+        else:
+            print(f"{scene:<11}{len(ai_s):>7}{statistics.mean(ai_s):>8.1f}"
+                  f"{ai_len:>8.0f}{'—':>9}{'—':>9}{'—':>9}{'—':>7}  无人类对照，无法给区分度")
+            results[scene] = {
+                "ai_n": len(ai_s), "ai_mean": round(statistics.mean(ai_s), 1),
+                "ai_chars": round(ai_len), "human_n": 0, "auc": None,
+                "verdict": "无人类对照",
+            }
+
+    print("-" * 100)
+    print("⚠ 上表的 AUC 是**未做等长处理**的，两侧篇幅差得越多这个数越虚。")
+
+    print("\n=== 等长比较（同一长度带内重算，这才是可信的区分度）===")
+    hdr2 = f"{'场景':<11}{'长度带':>14}{'AI篇数':>8}{'人类篇数':>9}{'等长AUC':>9}  对比未等长"
+    print(hdr2)
+    print("-" * 78)
+    for scene in SCENES:
+        v = results.get(scene)
+        if not v or not v.get("matched"):
+            continue
+        m = v["matched"]
+        if m["auc"] is None:
+            band = f"{m['band'][0]}-{m['band'][1]}" if m.get("band") else "—"
+            print(f"{scene:<11}{band:>14}{'—':>8}{'—':>9}{'—':>9}  {m.get('why','')}")
+        else:
+            band = f"{m['band'][0]}-{m['band'][1]}"
+            delta = m["auc"] - v["auc_raw"]
+            print(f"{scene:<11}{band:>14}{m['n_ai']:>8}{m['n_human']:>9}"
+                  f"{m['auc']:>9.3f}  {v['auc_raw']:.3f} → {m['auc']:.3f}"
+                  f"（{delta:+.3f}）")
+    print("-" * 78)
+
+    scored = [v["matched"]["auc"] for v in results.values()
+              if v.get("matched", {}).get("auc") is not None]
+    if scored:
+        print(f"\n可做等长比较的 {len(scored)} 个场景，AUC 从 {min(scored):.3f} 到 "
+              f"{max(scored):.3f}，中位数 {statistics.median(scored):.3f}")
+        print("（AUC = 随机取一篇 AI 和一篇真人，AI 分更高的概率。0.5 是抛硬币。）")
+
+    print("\n=== 各场景 AI 侧按模型拆开 ===")
+    for scene in SCENES:
+        ai = by_scene.get(scene, [])
+        if not ai:
+            continue
+        line = f"  {scene:<11}"
+        for m in sorted({r["model"] for r in ai}):
+            s = [fused(r["text"]) for r in ai if r["model"] == m]
+            line += f"{SHORT.get(m, m)}={statistics.mean(s):.0f}  "
+        print(line)
+
+    if args.json_out:
+        pathlib.Path(args.json_out).write_text(
+            json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"\nwrote {args.json_out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
