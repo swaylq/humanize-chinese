@@ -48,7 +48,19 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=60, help="samples per label")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out-dir", default="evals/corpus")
+    ap.add_argument("--allow-guessed-genre", action="store_true",
+                    help="include records whose genre was keyword-guessed "
+                         "(NOT recommended — see the provenance note below)")
     args = ap.parse_args()
+
+    # Provenance gate. NLPCC2025's dev/test splits ship only (text, label) — no
+    # source column — so data/prepare_nlpcc2025.py guessed their genre from
+    # keywords. That guess mislabels: a personal narrative containing the words
+    # "研究菜单" was filed as an academic abstract and scored 5/100, dragging the
+    # human academic mean down. Records with a real source carry prompt_id
+    # ("CSL"/"CNewSum"/"ASAP"); guessed ones carry prompt_id=null. Only trust
+    # the former.
+    require_provenance = not args.allow_guessed_genre
 
     src = pathlib.Path(args.src)
     if not src.exists():
@@ -57,12 +69,16 @@ def main() -> int:
 
     pools: dict[str, list] = {"human": [], "ai": []}
     scanned = 0
+    dropped_guessed = 0
     for line in src.open(encoding="utf-8"):
         if not line.strip():
             continue
         r = json.loads(line)
         scanned += 1
         if r.get("genre") != args.genre:
+            continue
+        if require_provenance and not r.get("prompt_id"):
+            dropped_guessed += 1
             continue
         label = r.get("label")
         if label not in pools:
@@ -83,8 +99,9 @@ def main() -> int:
             "src_model": r.get("model"),
         })
 
-    print(f"scanned {scanned} records; in-band pool: "
-          f"human={len(pools['human'])} ai2024={len(pools['ai'])}", file=sys.stderr)
+    print(f"scanned {scanned} records; dropped {dropped_guessed} with guessed "
+          f"genre; in-band pool: human={len(pools['human'])} "
+          f"ai2024={len(pools['ai'])}", file=sys.stderr)
 
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
