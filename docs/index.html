@@ -193,18 +193,18 @@
 
       <ul class="checks">
         <li><span class="tick">✓</span><span><b>事实关</b> —— 原文的数字、人名、专有名词、段落数，少一个就打回重做。</span></li>
-        <li><span class="tick">✓</span><span><b>通顺关</b> —— 三个大模型各自读一遍打分，并把觉得不通的句子原样抄出来；两个以上指出同一句就打回重做。</span></li>
+        <li><span class="tick">✓</span><span><b>通顺关</b> —— 三个模型各自读一遍打分，并把觉得不通的句子原样抄出来；两个以上指出同一句就打回重做。</span></li>
         <li><span class="tick">✓</span><span><b>三次还不过就原样返回，不改</b> —— 宁可不改，也不写病句。</span></li>
       </ul>
 
       <div class="table-wrap" style="margin-top:var(--s-8)">
         <table>
-          <thead><tr><th>实测（1–5 分，3 个模型评审，两轮取并集）</th><th>通顺度</th><th>病句</th></tr></thead>
+          <thead><tr><th>实测（1–5 分，3 个模型评审；结果存疑时加跑一轮取并集）</th><th>通顺度</th><th>评审发现的病句</th></tr></thead>
           <tbody>
-            <tr><td>本工具 · 仓库五份夸张样例</td><td>4.0 – 5.0</td><td>0 处</td></tr>
+            <tr><td>本工具 · 仓库五份夸张样例</td><td>4.0 – 5.0</td><td>未发现</td></tr>
             <tr><td>上一版纯规则改写 · 同样例</td><td class="verdict bad">2.0</td><td class="verdict bad">5 – 17 处</td></tr>
-            <tr><td>本工具 · 社交笔记 350 字（真实模型产出）</td><td>5.0</td><td>0</td></tr>
-            <tr><td>本工具 · 学术摘要 736 字（真实模型产出）</td><td>5.0</td><td>0</td></tr>
+            <tr><td>本工具 · 社交笔记 350 字（真实模型产出）</td><td>5.0</td><td>未发现</td></tr>
+            <tr><td>本工具 · 学术摘要 736 字（真实模型产出）</td><td>5.0</td><td>未发现</td></tr>
             <tr><td>本工具 · 科普短文 571 字（真实模型产出）</td><td>4.0</td><td>1</td></tr>
           </tbody>
         </table>
@@ -212,7 +212,7 @@
 
       <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
         真实模型产出那三篇里，两篇干净，一篇被两位评审指出一处并列失衡（后半句缺了宾语）。
-        <strong>样本只有 3 篇，别当成精确的合格率看</strong> —— 但方向是清楚的：真实文本比夸张样本难改，工具不是零缺陷。
+        <strong>样本只有 3 篇，别当成精确的合格率看</strong> —— 但方向是清楚的：真实文本比夸张样本难改，工具不是零缺陷。<br>表里写「未发现」而不是「0 处」是有意的：评审对真实病句存在漏报，「未发现」只说这一轮没抓到，不承诺不存在。
         这一组是新加的，因为之前只在自己写的夸张样本上测过。
       </p>
     </div>

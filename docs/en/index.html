@@ -141,16 +141,16 @@
       </ul>
       <div class="table-wrap" style="margin-top:var(--s-8)">
         <table>
-          <thead><tr><th>Measured (1–5, three judges, union of two rounds)</th><th>Fluency</th><th>Broken</th></tr></thead>
+          <thead><tr><th>Measured (1–5, three judges; a second round when the first is not clean-cut, unioned)</th><th>Fluency</th><th>Broken sentences found</th></tr></thead>
           <tbody>
-            <tr><td>This tool · five exaggerated in-repo samples</td><td>4.0 – 5.0</td><td>0</td></tr>
+            <tr><td>This tool · five exaggerated in-repo samples</td><td>4.0 – 5.0</td><td>none found</td></tr>
             <tr><td>Previous rule-only rewriter · same samples</td><td class="verdict bad">2.0</td><td class="verdict bad">5 – 17</td></tr>
             <tr><td>This tool · real model output, 3 texts</td><td>4.0 – 5.0</td><td>1 total</td></tr>
           </tbody>
         </table>
       </div>
       <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
-        Two of the three real-model texts came back clean; one had a single unbalanced coordination.
+        Two of the three real-model texts came back with nothing flagged; one had a single unbalanced coordination. The table says <em>none found</em> rather than <em>zero</em> on purpose — review misses real defects some of the time, so &ldquo;none found&rdquo; reports what this round caught, not what exists.
         <strong>Three samples is not a pass rate</strong> — but the direction is clear: real text is
         harder to rewrite than caricatured text, and the tool is not defect-free.
       </p>
