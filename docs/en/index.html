@@ -114,14 +114,10 @@
         often. The long-form row has a thinner sample (15 machine vs 22 human) than the others, but
         the direction is unambiguous.
       </p>
-      <div class="cards" style="margin-top:var(--s-10)">
+      <div class="cards" style="margin-top:var(--s-10);grid-template-columns:repeat(2,minmax(0,1fr))">
         <article class="card">
           <h3>Human-written papers get flagged too</h3>
           <p>60 real CNKI abstracts published <strong>before</strong> large language models existed average 60/100, and <strong>35%</strong> land in the "almost certainly AI" band. Chinese academic prose is full of set connectives; the detector cannot tell convention from generation.</p>
-        </article>
-        <article class="card">
-          <h3>Commercial detectors disagree with each other</h3>
-          <p>The same passage scores 0 on one tool and 99.9 on another. Zhu Ziqing's 1927 essay <em>Moonlight over the Lotus Pond</em> came back 62.88% AI on one of them.</p>
         </article>
         <article class="card">
           <h3>So don't screen long text with it</h3>

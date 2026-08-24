@@ -167,14 +167,10 @@
         长篇博客这一格样本较少（AI 15 篇对真人 22 篇），比其它几格弱，但方向明确。
       </p>
 
-      <div class="cards" style="margin-top:var(--s-10)">
+      <div class="cards" style="margin-top:var(--s-10);grid-template-columns:repeat(2,minmax(0,1fr))">
         <article class="card">
           <h3>真人写的论文也会被判成 AI</h3>
           <p>60 篇发表时间早于大模型的<strong>真实知网论文摘要</strong>，平均 60 分，其中 <strong>35%</strong> 落在「几乎确定是 AI」那一档。中文学术写作本来就爱用「综上所述」「与此同时」，检测器分不出这是文体惯例还是机器。</p>
-        </article>
-        <article class="card">
-          <h3>商用检测器之间也对不上</h3>
-          <p>同一批文字，有的工具给 0 分，有的给 99.9 分。朱自清的《荷塘月色》在某个工具上被判 <strong>62.88%</strong> 是 AI 写的。</p>
         </article>
         <article class="card">
           <h3>所以别拿它筛长文</h3>
