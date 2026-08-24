@@ -40,6 +40,8 @@ SCENES = ["academic", "general", "social", "workplace", "blog", "novel"]
 # same target lengths); the other scenes still need generating.
 MATCHED_SETS = {
     "academic": "ai2026_abstract.jsonl",
+    "general": "ai2026_general_matched.jsonl",
+    "novel": "ai2026_novel_matched.jsonl",
 }
 
 

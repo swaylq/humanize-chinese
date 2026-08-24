@@ -29,12 +29,15 @@
   "human_chars": 343,
   "auc_raw": 0.806,
   "matched": {
-   "auc": null,
+   "auc": 0.837,
+   "n_ai": 100,
+   "n_human": 50,
    "band": [
-    456,
-    499
+    346,
+    343
    ],
-   "why": "长度分布重叠不足，无法做等长比较"
+   "kind": "purpose-built",
+   "source": "ai2026_general_matched.jsonl"
   },
   "verdict": "可用"
  },
@@ -93,12 +96,15 @@
   "human_chars": 844,
   "auc_raw": 0.391,
   "matched": {
-   "auc": null,
+   "auc": 0.479,
+   "n_ai": 100,
+   "n_human": 50,
    "band": [
-    800,
-    983
+    923,
+    844
    ],
-   "why": "长度分布重叠不足，无法做等长比较"
+   "kind": "purpose-built",
+   "source": "ai2026_novel_matched.jsonl"
   },
   "verdict": "接近盲猜"
  }

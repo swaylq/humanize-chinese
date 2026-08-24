@@ -1,0 +1,26 @@
+[
+ {
+  "id": "general-kimi3-03",
+  "scene": "general",
+  "status": "rewritten",
+  "median": 4,
+  "defects": [
+   "孕妇的代谢会明显减慢，半衰期可延长到十小时以上；吸烟者则会加快；肝功能不佳或服用某些药物也会延缓清除"
+  ],
+  "passed": false,
+  "guards_ok": true,
+  "src_chars": 571,
+  "out_chars": 565
+ },
+ {
+  "id": "academic-gpt56-02",
+  "scene": "academic",
+  "status": "rewritten",
+  "median": 5,
+  "defects": [],
+  "passed": true,
+  "guards_ok": true,
+  "src_chars": 736,
+  "out_chars": 734
+ }
+]
