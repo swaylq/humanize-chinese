@@ -9,15 +9,27 @@ built from 2022-era ChatGPT, was measuring something that no longer exists.
 
 Each scene has a target length in Chinese characters and a list of topics.
 Scene names match the ones the detector/rewriter already use.
+
+TARGET LENGTHS COME FROM THE HUMAN CONTROL CORPORA, NOT FROM INTUITION.
+The first version of this file set them by genre feel — academic 700, blog and
+novel 1800 — and that quietly wrecked the experiment: real CSL abstracts run
+~305 characters, so the academic comparison was 2.6x mismatched and its AUC
+measured length as much as writing. Three of six scenes ended up with too
+little length overlap to compare at all. The one scene that happened to match
+(social, 350 vs 304) is the one scene that produced a usable number.
+
+Each target below is the median of that scene's human control, measured
+2026-08-24. tests/test_prompts.py asserts they stay inside the human band, so
+this cannot drift back.
 """
 from __future__ import annotations
 
 SCENES = {
     "academic": {
         "desc": "学术论文段落",
-        "target_chars": 700,
+        "target_chars": 305,
         "instruction": (
-            "请写一段{topic}的学术论文正文，约 600-800 字，中文，"
+            "请写一段{topic}的学术论文正文，约 280-360 字，中文，"
             "包含研究背景、方法或分析、以及一段小结。只输出正文，不要标题、"
             "不要 markdown 标记、不要参考文献列表。"
         ),
@@ -36,9 +48,9 @@ SCENES = {
     },
     "general": {
         "desc": "通用说明文/科普",
-        "target_chars": 500,
+        "target_chars": 319,
         "instruction": (
-            "请写一篇关于{topic}的中文短文，约 450-600 字，"
+            "请写一篇关于{topic}的中文短文，约 290-370 字，"
             "面向普通读者，讲清楚是什么、为什么重要。只输出正文，不要标题、"
             "不要小标题、不要 markdown 标记。"
         ),
@@ -57,9 +69,9 @@ SCENES = {
     },
     "social": {
         "desc": "社交媒体笔记（小红书/微博体）",
-        "target_chars": 350,
+        "target_chars": 304,
         "instruction": (
-            "帮我写一篇关于{topic}的小红书笔记，约 300-400 字，"
+            "帮我写一篇关于{topic}的小红书笔记，约 260-360 字，"
             "语气亲切、有分享感。只输出笔记正文，不要标题行、不要话题标签列表、"
             "不要 markdown 标记。"
         ),
@@ -97,10 +109,10 @@ SCENES = {
         ],
     },
     "blog": {
-        "desc": "长篇博客/深度文章（≥1500 字）",
-        "target_chars": 1800,
+        "desc": "长篇博客/深度文章",
+        "target_chars": 1209,
         "instruction": (
-            "请写一篇关于{topic}的中文博客长文，1600-2000 字，"
+            "请写一篇关于{topic}的中文博客长文，1100-1350 字，"
             "有个人视角和具体例子，分几个自然段展开。只输出正文，"
             "不要标题、不要小标题编号、不要 markdown 标记。"
         ),
@@ -118,10 +130,10 @@ SCENES = {
         ],
     },
     "novel": {
-        "desc": "小说叙事片段（≥1500 字）",
-        "target_chars": 1800,
+        "desc": "小说叙事片段",
+        "target_chars": 838,
         "instruction": (
-            "请写一段中文小说，1600-2000 字，题材：{topic}。"
+            "请写一段中文小说，750-950 字，题材：{topic}。"
             "要有场景、对话和人物动作。只输出正文，不要标题、不要章节号、"
             "不要 markdown 标记。"
         ),

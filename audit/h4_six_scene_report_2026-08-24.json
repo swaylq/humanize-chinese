@@ -8,9 +8,15 @@
   "human_chars": 310,
   "auc_raw": 0.805,
   "matched": {
-   "auc": null,
-   "band": null,
-   "why": "长度分布重叠不足，无法做等长比较"
+   "auc": 0.621,
+   "n_ai": 100,
+   "n_human": 50,
+   "band": [
+    309,
+    310
+   ],
+   "kind": "purpose-built",
+   "source": "ai2026_abstract.jsonl"
   },
   "verdict": "可用"
  },
