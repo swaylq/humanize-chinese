@@ -32,15 +32,20 @@ from normalize import count_cn, normalize_punct  # noqa: E402
 EXTRACTOR = "openai/gpt-5.6-luna"  # cheap, outside the benchmark panel
 
 EXTRACT_PROMPT = (
-    "下面是一篇中文论文摘要。请用一个名词短语概括它的研究主题，20 字以内，"
-    "只输出这个短语，不要引号、不要标点、不要任何解释。\n\n摘要：\n{abstract}"
+    "下面是一段中文{desc}。请用一个名词短语概括它写的是什么，20 字以内，"
+    "只输出这个短语，不要引号、不要标点、不要任何解释。\n\n原文：\n{abstract}"
 )
 
-WRITE_PROMPT = (
-    "请写一篇中文论文摘要，研究主题：{topic}。"
-    "长度约 {chars} 个汉字。只输出摘要正文，不要「摘要」二字、不要关键词、"
-    "不要标题、不要 markdown 标记。"
-)
+# The write prompt is the SCENE'S OWN instruction from prompts.py, with the
+# length overridden to the paired human sample's. Hardcoding one prompt here
+# was a bug: it said 请写一篇中文论文摘要 regardless of scene, so asking for a
+# matched `general` set (whose human side is CNewSum news) produced academic
+# abstracts on news topics — 87 samples that could not be compared to anything.
+# Caught 2026-08-24 by spot-checking output instead of trusting the counter.
+def write_prompt(scene: str, topic: str, chars: int) -> str:
+    from prompts import SCENES
+    base = SCENES[scene]["instruction"].format(topic=topic)
+    return f"{base}\n\n长度请控制在约 {chars} 个汉字。"
 
 _lock = threading.Lock()
 
@@ -95,8 +100,10 @@ def main() -> int:
 
         def extract(c):
             try:
+                from prompts import SCENES
+                desc = SCENES.get(args.scene, {}).get("desc", "文本")
                 t = chat(EXTRACTOR,
-                         EXTRACT_PROMPT.format(abstract=c["text"]),
+                         EXTRACT_PROMPT.format(abstract=c["text"], desc=desc),
                          max_tokens=2000).strip().strip("。.\"'「」")
                 with _lock:
                     topics[c["id"]] = {"topic": t, "chars": c["cn_chars"]}
@@ -139,11 +146,11 @@ def main() -> int:
             # can return empty content with finish_reason=length. GLM-5.3 hit
             # this on 3/20 abstracts at 8000; retry once with a bigger budget.
             try:
-                raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
+                raw = chat(model, write_prompt(args.scene, topic, chars),
                            max_tokens=16000)
             except Exception:
                 # cap the hidden reasoning rather than raising the ceiling
-                raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
+                raw = chat(model, write_prompt(args.scene, topic, chars),
                            max_tokens=16000, reasoning_effort="low")
         except Exception as exc:  # noqa: BLE001
             log(f"  FAIL {sid}: {str(exc)[:140]}")
