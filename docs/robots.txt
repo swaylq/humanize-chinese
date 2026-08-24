@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://swaylq.github.io/humanize-chinese/sitemap.xml

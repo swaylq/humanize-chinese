@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When is an "AI score" trustworthy? Six Chinese genres, measured</title>
+<meta name="description" content="Measured in August 2026 against five current models: an AI-text detector separates machine from human at 0.837 on short explainers, 0.621 on academic abstracts, and 0.155 on long-form blogs — where the direction inverts and human writing scores higher. humanize-chinese is an open-source Chinese rewriting tool aimed at readable output, not a lower score.">
+<meta name="keywords" content="AI text detection accuracy,Chinese AI detector,AIGC score,false positive AI detection,humanize chinese,AI writing detection,open source">
+<meta name="author" content="swaylq">
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a18" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://swaylq.github.io/humanize-chinese/en/">
+<link rel="alternate" hreflang="zh-Hans" href="https://swaylq.github.io/humanize-chinese/">
+<link rel="alternate" hreflang="en" href="https://swaylq.github.io/humanize-chinese/en/">
+<link rel="alternate" hreflang="x-default" href="https://swaylq.github.io/humanize-chinese/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:site_name" content="humanize-chinese">
+<meta property="og:title" content="When is an AI score trustworthy? Six Chinese genres, measured">
+<meta property="og:description" content="0.837 on short explainers. 0.621 on academic abstracts. 0.155 on long-form blogs — the direction inverts.">
+<meta property="og:url" content="https://swaylq.github.io/humanize-chinese/en/">
+<meta property="og:image" content="https://swaylq.github.io/humanize-chinese/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://swaylq.github.io/humanize-chinese/assets/og.png">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "humanize-chinese",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "https://swaylq.github.io/humanize-chinese/en/",
+  "codeRepository": "https://github.com/swaylq/humanize-chinese",
+  "programmingLanguage": "Python",
+  "description": "Chinese AI-text detection and rewriting. Three tiers: offline punctuation-only with no API key, --llm to strip boilerplate, and write to draft from scratch. Every rewrite passes a fact gate and a fluency gate; it returns the text unchanged rather than emitting a broken sentence.",
+  "author": { "@type": "Person", "name": "swaylq", "url": "https://github.com/swaylq" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-in">
+    <a class="wordmark" href="/humanize-chinese/en/">humanize<span class="dot">-</span>chinese</a>
+    <nav class="topnav">
+      <a class="hide-sm" href="#score">Is the score real</a>
+      <a class="hide-sm" href="#readable">Still readable</a>
+      <a href="#install">Install</a>
+      <a href="../">中文</a>
+      <a href="https://github.com/swaylq/humanize-chinese">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="shell hero">
+    <p class="eyebrow">humanize-chinese · open source · pure Python</p>
+    <h1>Don't rush to lower that AI score<span class="dot">.</span></h1>
+    <p class="lede">
+      We measured six Chinese genres against five current models. The detector is
+      <strong>still useful</strong> on short explainers, <strong>already weak</strong> on academic
+      abstracts, and on long-form blogs <strong>the direction inverts</strong> — human writing
+      scores higher than the machine's.
+    </p>
+    <blockquote class="pull">
+      So the goal here is text that reads like a person wrote it,<br>
+      not a smaller number.
+    </blockquote>
+    <div class="cta">
+      <a class="btn btn-primary" href="#score">See the six genres ↓</a>
+      <a class="btn btn-ghost" href="https://github.com/swaylq/humanize-chinese">Source on GitHub</a>
+    </div>
+    <dl class="stats">
+      <div class="stat"><dt>Genres measured</dt><dd>6</dd></div>
+      <div class="stat"><dt>Models used</dt><dd>5</dd></div>
+      <div class="stat"><dt>Human papers misflagged</dt><dd class="cut">35<span class="unit">%</span></dd></div>
+      <div class="stat"><dt>API key for offline tier</dt><dd>None</dd></div>
+    </dl>
+  </section>
+
+  <section class="section" id="score">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">Say it plainly</p>
+        <h2>An "AI score" may mean nothing for the genre you write in</h2>
+        <p>
+          August 2026. Claude Opus 5, GPT-5.6, DeepSeek V4, GLM-5.3 and Kimi K3 each produced
+          50–100 samples per genre, set against 50 public human texts, recomputed
+          <strong>after matching length on both sides</strong>.
+        </p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Genre</th><th style="width:46%">Separation</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>Short explainer / news</td><td><span class="auc"><span class="val">0.837</span><span class="bar"><i style="width:83.7%"></i><u></u></span></span></td><td class="verdict">still useful</td></tr>
+            <tr><td>Social posts</td><td><span class="auc"><span class="val">0.771</span><span class="bar"><i style="width:77.1%"></i><u></u></span></span></td><td class="verdict">usable</td></tr>
+            <tr><td>Academic abstracts</td><td><span class="auc"><span class="val">0.621</span><span class="bar"><i style="width:62.1%"></i><u></u></span></span></td><td class="verdict">already weak</td></tr>
+            <tr><td>Fiction</td><td><span class="auc flip"><span class="val">0.479</span><span class="bar"><i style="width:47.9%"></i><u></u></span></span></td><td class="verdict">a coin flip</td></tr>
+            <tr><td>Long-form blogs</td><td><span class="auc flip"><span class="val">0.155</span><span class="bar"><i style="width:15.5%"></i><u></u></span></span></td><td class="verdict bad">inverted</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        Read it as: pick one machine text and one human text at random — this is the probability the
+        machine one scores higher. The tick is <strong>0.5, a coin flip</strong>. Below that, the
+        direction is reversed: asked to pick "the one that looks AI-written", it picks the human more
+        often. The long-form row has a thinner sample (15 machine vs 22 human) than the others, but
+        the direction is unambiguous.
+      </p>
+      <div class="cards" style="margin-top:var(--s-10)">
+        <article class="card">
+          <h3>Human-written papers get flagged too</h3>
+          <p>60 real CNKI abstracts published <strong>before</strong> large language models existed average 60/100, and <strong>35%</strong> land in the "almost certainly AI" band. Chinese academic prose is full of set connectives; the detector cannot tell convention from generation.</p>
+        </article>
+        <article class="card">
+          <h3>Commercial detectors disagree with each other</h3>
+          <p>The same passage scores 0 on one tool and 99.9 on another. Zhu Ziqing's 1927 essay <em>Moonlight over the Lotus Pond</em> came back 62.88% AI on one of them.</p>
+        </article>
+        <article class="card">
+          <h3>So don't screen long text with it</h3>
+          <p>Short expository writing is a genuine exception — don't throw that out. But using it to judge whether a long blog post or a novel chapter was machine-written gives you answers that are wrong in a systematic direction.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="readable">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">Still readable afterwards</p>
+        <h2>The usual failure isn't rewriting too little — it's emitting sentences that aren't Chinese</h2>
+        <p>Every rewrite passes two gates, and failing them means the text comes back untouched.</p>
+      </div>
+      <ul class="checks">
+        <li><span class="tick">✓</span><span><b>Fact gate</b> — numbers, names, proper nouns and paragraph count from the original; lose one and the rewrite is rejected.</span></li>
+        <li><span class="tick">✓</span><span><b>Fluency gate</b> — three models each score it and quote back any sentence they find broken. Two flagging the same sentence sends it back.</span></li>
+        <li><span class="tick">✓</span><span><b>Three failures and it returns your text unchanged</b> — better no edit than a broken sentence.</span></li>
+      </ul>
+      <div class="table-wrap" style="margin-top:var(--s-8)">
+        <table>
+          <thead><tr><th>Measured (1–5, three judges, union of two rounds)</th><th>Fluency</th><th>Broken</th></tr></thead>
+          <tbody>
+            <tr><td>This tool · five exaggerated in-repo samples</td><td>4.0 – 5.0</td><td>0</td></tr>
+            <tr><td>Previous rule-only rewriter · same samples</td><td class="verdict bad">2.0</td><td class="verdict bad">5 – 17</td></tr>
+            <tr><td>This tool · real model output, 3 texts</td><td>4.0 – 5.0</td><td>1 total</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        Two of the three real-model texts came back clean; one had a single unbalanced coordination.
+        <strong>Three samples is not a pass rate</strong> — but the direction is clear: real text is
+        harder to rewrite than caricatured text, and the tool is not defect-free.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="install">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">Install</p>
+        <h2>Clone and run — no pip install</h2>
+      </div>
+      <div class="copyline">
+        <span class="scroll"><code id="install-cmd">git clone https://github.com/swaylq/humanize-chinese.git</code></span>
+        <button type="button" data-copy="#install-cmd">Copy</button>
+      </div>
+      <div class="table-wrap hosts">
+        <table>
+          <thead><tr><th>Tier</th><th>Command</th><th>API key</th></tr></thead>
+          <tbody>
+            <tr><td>Offline</td><td><code>./humanize rewrite file.txt</code></td><td>none</td></tr>
+            <tr><td>Boilerplate removal</td><td><code>./humanize rewrite file.txt --llm</code></td><td>required</td></tr>
+            <tr><td>Draft from scratch</td><td><code>./humanize write "…"</code></td><td>required</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        Pure Python standard library, zero dependencies. Also installs as a Claude Code skill.
+        Licence is MIT <strong>Non-Commercial</strong> — free to use, modify and redistribute; commercial use excluded.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="shell">
+    <div class="foot-line">
+      <a href="https://github.com/swaylq/humanize-chinese">GitHub</a>
+      <a href="https://clawhub.ai/swaylq/skills/humanize-chinese">ClawHub</a>
+      <a href="../">中文</a>
+      <a href="https://swaylq.github.io/">More open source</a>
+      <span style="color:var(--ink-faint)">MIT Non-Commercial © <a href="https://github.com/swaylq">swaylq</a></span>
+    </div>
+    <p class="closing">
+      The previous version swapped synonyms and shuffled clauses to push the score down. The score fell; the sentences broke.<br>
+      <em>We stopped doing that.</em>
+    </p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var text = document.querySelector(btn.dataset.copy).textContent.trim();
+    navigator.clipboard.writeText(text).then(function () {
+      var old = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = old; }, 1600);
+    });
+  });
+});
+</script>
+</body>
+</html>

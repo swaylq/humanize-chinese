@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIGC 率这个分数什么时候可信？—— 六个文体的实测，与一个改写工具</title>
+<meta name="description" content="用 2026 年五个当前模型实测：AI 检测分在科普短文上区分能力 0.837 还好用，学术摘要 0.621 已经很弱，长篇博客 0.155 方向是反的。60 篇真实知网论文摘要平均 60 分、35% 被判「几乎确定是 AI」。humanize-chinese 是一个开源中文改写工具，目标是改完读起来像人写的，不是把分数压低。">
+<meta name="keywords" content="AIGC率,AI检测准不准,知网AIGC检测,论文AI痕迹,AI检测误判,中文AI文本检测,去AI味,humanize-chinese,AI改写工具,开源">
+<meta name="author" content="swaylq">
+<meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a18" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://swaylq.github.io/humanize-chinese/">
+<link rel="alternate" hreflang="zh-Hans" href="https://swaylq.github.io/humanize-chinese/">
+<link rel="alternate" hreflang="en" href="https://swaylq.github.io/humanize-chinese/en/">
+<link rel="alternate" hreflang="x-default" href="https://swaylq.github.io/humanize-chinese/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:site_name" content="humanize-chinese">
+<meta property="og:title" content="AIGC 率这个分数什么时候可信？六个文体的实测">
+<meta property="og:description" content="科普短文 0.837 还好用，学术摘要 0.621 很弱，长篇博客 0.155 方向是反的。真人写的论文摘要 35% 被判「几乎确定是 AI」。">
+<meta property="og:url" content="https://swaylq.github.io/humanize-chinese/">
+<meta property="og:image" content="https://swaylq.github.io/humanize-chinese/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AIGC 率这个分数什么时候可信？六个文体的实测">
+<meta name="twitter:description" content="长篇博客上区分能力 0.155 —— 方向是反的，真人写的分数更高。">
+<meta name="twitter:image" content="https://swaylq.github.io/humanize-chinese/assets/og.png">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "humanize-chinese",
+      "alternateName": ["中文 AI 文本去痕迹工具", "humanize chinese"],
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "macOS, Linux, Windows",
+      "url": "https://swaylq.github.io/humanize-chinese/",
+      "codeRepository": "https://github.com/swaylq/humanize-chinese",
+      "downloadUrl": "https://github.com/swaylq/humanize-chinese",
+      "programmingLanguage": "Python",
+      "license": "https://github.com/swaylq/humanize-chinese/blob/main/LICENSE",
+      "description": "中文 AI 文本检测与改写工具。三档用法：离线只调断句零 API key、--llm 拆套话、write 从零写。每次改写过事实关与通顺关，宁可不改也不写病句。",
+      "author": { "@type": "Person", "name": "swaylq", "url": "https://github.com/swaylq" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "AI 检测的 AIGC 率准不准？",
+          "acceptedAnswer": { "@type": "Answer", "text": "取决于文体，差别极大。2026 年 8 月用五个当前模型实测，两侧长度对齐后：科普与新闻类短文区分能力 0.837，还好用；社交笔记 0.771，能用；学术摘要 0.621，已经很弱；小说 0.479，约等于抛硬币；长篇博客 0.155，方向是反的，真人写的分数反而更高。所以不能笼统说检测器有效或失效，要看你写的是什么文体。" }
+        },
+        {
+          "@type": "Question",
+          "name": "真人写的论文会被判成 AI 吗？",
+          "acceptedAnswer": { "@type": "Answer", "text": "会。60 篇发表时间早于大模型的真实知网论文摘要，平均分 60，其中 35% 落在「几乎确定是 AI」那一档。中文学术写作本来就爱用「综上所述」「与此同时」这类连接词，检测器分不出这是文体惯例还是机器生成。" }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么这个工具不主打把 AIGC 率压低？",
+          "acceptedAnswer": { "@type": "Answer", "text": "因为为压分数而做的改写会写出病句。上一版靠乱换同义词、插过渡句、打乱语序来降分，分数降得多，但三个模型评审给它的通顺度中位数只有 2.0 分（满分 5），每份样本 5 到 17 处病句。现在的目标是改完读起来像人写的，分数只是副产品。" }
+        },
+        {
+          "@type": "Question",
+          "name": "改写会不会把意思改错或改出病句？",
+          "acceptedAnswer": { "@type": "Answer", "text": "每次改写要过两道关。事实关：原文的数字、人名、专有名词、段落数少一个就打回重做。通顺关：三个大模型各自打分并抄出觉得不通的句子，两个以上指出同一句就打回，三次不过就原样返回不改。实测仓库五份样例通顺度 4.0 到 5.0、零病句；当前模型真实产出的三篇里两篇干净、一篇有一处并列失衡。样本只有三篇，不能当精确合格率看。" }
+        },
+        {
+          "@type": "Question",
+          "name": "要不要 API key？要联网吗？",
+          "acceptedAnswer": { "@type": "Answer", "text": "看你用哪一档。离线档只调整断句节奏、不动一个字，不需要 key 也不联网，去掉标点后前后文字必须完全一致，程序会校验。--llm 档拆套话和模板句式，需要 key。write 从零写一篇，需要 key。" }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-in">
+    <a class="wordmark" href="/humanize-chinese/">humanize<span class="dot">-</span>chinese</a>
+    <nav class="topnav">
+      <a class="hide-sm" href="#score">这个分数可信吗</a>
+      <a class="hide-sm" href="#readable">改完还能读</a>
+      <a class="hide-sm" href="#modes">三种用法</a>
+      <a href="#install">安装</a>
+      <a href="en/">EN</a>
+      <a href="https://github.com/swaylq/humanize-chinese">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="shell hero">
+    <p class="eyebrow">humanize-chinese · 开源 · 纯 Python</p>
+    <h1>那个 AIGC 率，先别急着压<span class="dot">.</span></h1>
+    <p class="lede">
+      我们用 2026 年五个当前模型实测了六个文体：这个分数在科普短文上<strong>还好用</strong>，
+      在学术摘要上<strong>已经很弱</strong>，在长篇博客上<strong>方向是反的</strong> ——
+      真人写的分数反而更高。
+    </p>
+
+    <blockquote class="pull">
+      所以这个工具的目标是「改完读起来像人写的」，<br>
+      不是「把分数压低」。
+    </blockquote>
+
+    <div class="cta">
+      <a class="btn btn-primary" href="#score">看六个文体的实测 ↓</a>
+      <a class="btn btn-ghost" href="https://github.com/swaylq/humanize-chinese">GitHub 源码</a>
+    </div>
+
+    <dl class="stats">
+      <div class="stat"><dt>实测文体</dt><dd>6</dd></div>
+      <div class="stat"><dt>参与模型</dt><dd>5</dd></div>
+      <div class="stat"><dt>真人论文被误判</dt><dd class="cut">35<span class="unit">%</span></dd></div>
+      <div class="stat"><dt>离线档要 API key</dt><dd>不要</dd></div>
+    </dl>
+  </section>
+
+  <section class="section" id="score">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">先说清楚</p>
+        <h2>「AIGC 率」在你的文体上，可能根本没有意义</h2>
+        <p>
+          2026 年 8 月，用 Claude Opus 5、GPT-5.6、DeepSeek V4、GLM-5.3、Kimi K3
+          五个模型各写 50–100 篇，对照 50 篇真人公开文本，<strong>两侧长度对齐后</strong>重算区分能力。
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>文体</th><th style="width:46%">区分能力</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td>科普 / 新闻类短文</td>
+              <td><span class="auc"><span class="val">0.837</span><span class="bar"><i style="width:83.7%"></i><u></u></span></span></td>
+              <td class="verdict">还好用</td></tr>
+            <tr><td>社交笔记</td>
+              <td><span class="auc"><span class="val">0.771</span><span class="bar"><i style="width:77.1%"></i><u></u></span></span></td>
+              <td class="verdict">能用</td></tr>
+            <tr><td>学术摘要</td>
+              <td><span class="auc"><span class="val">0.621</span><span class="bar"><i style="width:62.1%"></i><u></u></span></span></td>
+              <td class="verdict">已经很弱</td></tr>
+            <tr><td>小说</td>
+              <td><span class="auc flip"><span class="val">0.479</span><span class="bar"><i style="width:47.9%"></i><u></u></span></span></td>
+              <td class="verdict">约等于抛硬币</td></tr>
+            <tr><td>长篇博客</td>
+              <td><span class="auc flip"><span class="val">0.155</span><span class="bar"><i style="width:15.5%"></i><u></u></span></span></td>
+              <td class="verdict bad">方向是反的</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        这个数的读法：随机拿一篇模型写的和一篇真人写的，模型那篇分数更高的概率。
+        竖线是 <strong>0.5，抛硬币</strong>。低于 0.5 表示方向反了 ——
+        你拿它去挑「哪篇像 AI 写的」，它会更多地挑中真人写的那些。
+        长篇博客这一格样本较少（AI 15 篇对真人 22 篇），比其它几格弱，但方向明确。
+      </p>
+
+      <div class="cards" style="margin-top:var(--s-10)">
+        <article class="card">
+          <h3>真人写的论文也会被判成 AI</h3>
+          <p>60 篇发表时间早于大模型的<strong>真实知网论文摘要</strong>，平均 60 分，其中 <strong>35%</strong> 落在「几乎确定是 AI」那一档。中文学术写作本来就爱用「综上所述」「与此同时」，检测器分不出这是文体惯例还是机器。</p>
+        </article>
+        <article class="card">
+          <h3>商用检测器之间也对不上</h3>
+          <p>同一批文字，有的工具给 0 分，有的给 99.9 分。朱自清的《荷塘月色》在某个工具上被判 <strong>62.88%</strong> 是 AI 写的。</p>
+        </article>
+        <article class="card">
+          <h3>所以别拿它筛长文</h3>
+          <p>短说明文上它仍然好用，这一点不要一起否定掉。但用它去判断一篇长博客或小说是不是 AI 写的，结论会系统性地偏向错误方向。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="readable">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">改完还能读，这是重点</p>
+        <h2>改写工具最常见的失败不是改得不够，是改出了不是中文的句子</h2>
+        <p>
+          比如把「打造了更具竞争力的解决方案」换成「做出了更具竞争力的解决方案」——「做出」不搭配「方案」。
+          或者为了让句子变短，从不该断的地方断开：「通过优化业务流程。我们提升了工作效率」，前半句不成句。
+        </p>
+      </div>
+
+      <ul class="checks">
+        <li><span class="tick">✓</span><span><b>事实关</b> —— 原文的数字、人名、专有名词、段落数，少一个就打回重做。</span></li>
+        <li><span class="tick">✓</span><span><b>通顺关</b> —— 三个大模型各自读一遍打分，并把觉得不通的句子原样抄出来；两个以上指出同一句就打回重做。</span></li>
+        <li><span class="tick">✓</span><span><b>三次还不过就原样返回，不改</b> —— 宁可不改，也不写病句。</span></li>
+      </ul>
+
+      <div class="table-wrap" style="margin-top:var(--s-8)">
+        <table>
+          <thead><tr><th>实测（1–5 分，3 个模型评审，两轮取并集）</th><th>通顺度</th><th>病句</th></tr></thead>
+          <tbody>
+            <tr><td>本工具 · 仓库五份夸张样例</td><td>4.0 – 5.0</td><td>0 处</td></tr>
+            <tr><td>上一版纯规则改写 · 同样例</td><td class="verdict bad">2.0</td><td class="verdict bad">5 – 17 处</td></tr>
+            <tr><td>本工具 · 社交笔记 350 字（真实模型产出）</td><td>5.0</td><td>0</td></tr>
+            <tr><td>本工具 · 学术摘要 736 字（真实模型产出）</td><td>5.0</td><td>0</td></tr>
+            <tr><td>本工具 · 科普短文 571 字（真实模型产出）</td><td>4.0</td><td>1</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        真实模型产出那三篇里，两篇干净，一篇被两位评审指出一处并列失衡（后半句缺了宾语）。
+        <strong>样本只有 3 篇，别当成精确的合格率看</strong> —— 但方向是清楚的：真实文本比夸张样本难改，工具不是零缺陷。
+        这一组是新加的，因为之前只在自己写的夸张样本上测过。
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="modes">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">三种用法</p>
+        <h2>按你手上有什么选</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>命令</th><th>做什么</th><th>要不要 API key</th></tr></thead>
+          <tbody>
+            <tr><td><code>./humanize rewrite 文件.txt</code></td><td>只调整断句节奏，不动一个字</td><td>不要，离线免费</td></tr>
+            <tr><td><code>./humanize rewrite 文件.txt --llm</code></td><td>拆掉套话和模板句式，再调节奏</td><td>要</td></tr>
+            <tr><td><code>./humanize write "写一篇讲复利的科普"</code></td><td>从零写一篇本来就没有 AI 腔的</td><td>要</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        离线那档很保守：它只移动标点，去掉标点后前后文字必须一模一样，程序会校验。
+        碰上没法安全改的地方，它会直接告诉你「没有可以安全修改的地方」，而不是硬改出病句。
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="demo">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">30 秒看效果</p>
+        <h2>一份典型的工作汇报，满篇套话</h2>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="lamp"></span><span class="lamp"></span><span class="lamp"></span>
+          <span class="path">./humanize rewrite 汇报.txt --llm -o 改后.txt</span>
+        </div>
+<pre><span class="u">改写前</span>
+  随着业务的不断发展，本季度团队在多个层面取得了显著进展。<span class="cut">值得注意的是</span>，通过
+  <span class="cut">深度</span>优化业务流程，我们<span class="cut">不仅全方位</span>提升了工作效率，<span class="cut">更进一步赋能</span>了公司核心战略，
+  充分体现了<span class="cut">多维度</span>协同的价值。
+
+  <span class="cut">首先</span>，技术团队聚焦核心系统的稳定性建设，持续推动业务长效发展。<span class="cut">其次</span>，产品
+  团队基于用户洞察，打造了更具竞争力的解决方案。<span class="cut">综上所述</span>，团队凝聚力得到
+  进一步增强，为下一季度的发展奠定了坚实基础。
+
+<span class="a">改写后</span>
+  <span class="keep">本季度团队在多个层面取得了显著进展。通过优化业务流程，我们提升了工作效率，
+  也支持了公司核心战略，多方协同在其中起了作用。
+
+  技术团队推进核心系统的稳定性建设，支撑业务持续运行。产品团队基于用户洞察，
+  提出了更有竞争力的解决方案。团队凝聚力也得到进一步增强。</span>
+
+  「随着业务的不断发展」「值得注意的是」「赋能」「多维度」「综上所述」都没了，
+  事实一个没少，句子读着顺。</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="install">
+    <div class="shell">
+      <div class="section-head">
+        <p class="kicker">安装</p>
+        <h2>下载就能用，不需要 pip install</h2>
+      </div>
+      <div class="copyline">
+        <span class="scroll"><code id="install-cmd">git clone https://github.com/swaylq/humanize-chinese.git</code></span>
+        <button type="button" data-copy="#install-cmd">复制</button>
+      </div>
+      <div class="table-wrap hosts">
+        <table>
+          <thead><tr><th>方式</th><th>命令</th></tr></thead>
+          <tbody>
+            <tr><td>ClawHub</td><td><code>clawhub install humanize-chinese</code></td></tr>
+            <tr><td>Git Clone</td><td><code>git clone https://github.com/swaylq/humanize-chinese.git</code></td></tr>
+            <tr><td>Claude Code Skill</td><td><code>npx skills add https://github.com/swaylq/humanize-chinese.git</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:var(--s-6);font-size:var(--text-sm);color:var(--ink-muted);max-width:var(--measure)">
+        纯 Python 标准库，零依赖。装成 Claude Code skill 后可以直接说「去 AI 味」「降 AIGC」「检测这段是不是 AI 写的」。
+        许可证是 MIT Non-Commercial —— 随便用、随便改、随便分发，商用除外。
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="shell">
+    <div class="foot-line">
+      <a href="https://github.com/swaylq/humanize-chinese">GitHub</a>
+      <a href="https://clawhub.ai/swaylq/skills/humanize-chinese">ClawHub</a>
+      <a href="en/">English</a>
+      <a href="https://swaylq.github.io/">更多开源项目</a>
+      <span style="color:var(--ink-faint)">MIT Non-Commercial © <a href="https://github.com/swaylq">swaylq</a></span>
+    </div>
+    <p class="closing">
+      上一版为了压分数去乱换同义词、插过渡句、打乱语序，分数确实降得多，但改出来的是病句。<br>
+      <em>那条路我们不走了。</em>
+    </p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var text = document.querySelector(btn.dataset.copy).textContent.trim();
+    navigator.clipboard.writeText(text).then(function () {
+      var old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function () { btn.textContent = old; }, 1600);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
