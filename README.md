@@ -3,7 +3,7 @@
 **中文文章去 AI 腔。离线免费可用，也可以接大模型做得更彻底。**
 
 [![GitHub stars](https://img.shields.io/github/stars/swaylq/humanize-chinese?style=flat-square)](https://github.com/swaylq/humanize-chinese)
-[![ClawHub](https://img.shields.io/badge/clawhub-humanize--chinese-blue?style=flat-square)](https://clawhub.com/skills/humanize-chinese)
+[![ClawHub](https://img.shields.io/badge/clawhub-humanize--chinese-blue?style=flat-square)](https://clawhub.ai/swaylq/skills/humanize-chinese)
 [![License: MIT Non-Commercial](https://img.shields.io/badge/License-MIT_Non--Commercial-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.6+-blue?style=flat-square)](https://python.org)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-orange?style=flat-square)](#claude-code)
