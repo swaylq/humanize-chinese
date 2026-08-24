@@ -73,6 +73,14 @@ def main() -> int:
             "v6_scores": verdict["scores"],
             "v6_defects": [d["quote"] for d in verdict["defects"]],
             "v6_passed": verdict["passed"],
+            # how many jury rounds backed this verdict — a clean single-round
+            # result is weaker evidence than a clean two-round one, because a
+            # single round misses a real defect about a quarter of the time
+            # (measured 2026-08-24). Without this field a later reader cannot
+            # tell the two apart, which is exactly the ambiguity that came up
+            # when the landing page tried to quote per-sample numbers.
+            "v6_rounds": verdict.get("rounds", 1),
+            "v6_singleton_flags": verdict.get("singleton_flags", 0),
             "rhythm_edits": len(edits),
             "invariant_ok": invariant_ok,
             "cv": round(m["cv"], 3),
