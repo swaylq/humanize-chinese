@@ -96,7 +96,7 @@ def main() -> int:
     src.add_argument("--write", dest="brief", help="brief for stage 1")
     ap.add_argument("-o", "--output", default=None)
     ap.add_argument("--stages", default=None,
-                    help="which stages to run, e.g. 123 / 23 / 3")
+                    help="which stages to run, e.g. 1234 / 234 / 3")
     ap.add_argument("--scene", default="general")
     ap.add_argument("--chars", type=int, default=600)
     ap.add_argument("-m", "--model", default="anthropic/claude-opus-5")
@@ -106,7 +106,7 @@ def main() -> int:
                     help="跳过通顺度评审团（H1 的硬门槛，默认开启）")
     args = ap.parse_args()
 
-    stages = args.stages or ("123" if args.brief else "23")
+    stages = args.stages or ("1234" if args.brief else "234")
     trace: list[dict] = []
 
     def note(stage, before, after, detail):
@@ -163,6 +163,15 @@ def main() -> int:
         note(3, before, text,
              f"断句节奏 {len(edits)} 处改动，保义校验 {'通过' if ok else '失败'}"
              + (f"：{'; '.join(edits)}" if edits else ""))
+
+    # ---- stage 4: proofread — fix errors only, change nothing else ------
+    if "4" in stages:
+        from stage4_proofread import proofread
+        before = text
+        text, status = proofread(text, model=args.model, verbose=args.verbose)
+        note(4, before, text,
+             {"proofread": "纠错完成", "unchanged": "无错误",
+              "reverted": "越权被拒，保留 ③ 的产物"}[status])
 
     m = rhythm.metrics(text)
     if args.verbose:

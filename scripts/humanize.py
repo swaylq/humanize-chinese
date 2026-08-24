@@ -28,7 +28,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SUBCOMMANDS = {
     'detect':   ('detect_cn.py',   'AI 痕迹检测 (0-100)'),
-    'rewrite':  ('rewrite_cn.py',  '去 AI 腔改写（v6 三段流水线；--legacy 回到 v5）'),
+    'rewrite':  ('rewrite_cn.py',  '去 AI 腔改写（v6 四段流水线；--legacy 回到 v5）'),
     'write':    ('rewrite_cn.py',  '按写作要求从零写一篇不带 AI 腔的中文'),
     'replace':  ('replace_cn.py',  '按文体路由的词语替换（离线，skill 第 ③ 段）'),
     'academic': ('academic_cn.py', '学术论文 AIGC 降重（11 维度）'),
