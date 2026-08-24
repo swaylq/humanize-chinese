@@ -67,11 +67,33 @@ def run_legacy(argv: list[str]) -> int:
     return subprocess.run([sys.executable, str(target), *argv]).returncode
 
 
+# Flags that only the v5 rewriter understands. Seeing one of these means the
+# caller is following the classic README, so forward the whole call instead of
+# erroring — with one quiet line, not a lecture.
+_HARD_LEGACY = {"-a", "--aggressive", "--cilin", "--best-of-n", "--style",
+                "--score-mode", "--no-stats", "--no-noise",
+                "--debug-best-of-n", "--secondary-weight"}
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(argv if argv is not None else sys.argv[1:])
     if "--legacy" in argv:
         argv.remove("--legacy")
         return run_legacy(argv)
+
+    if any(a in _HARD_LEGACY or a.startswith(tuple(f + "=" for f in _HARD_LEGACY))
+           for a in argv):
+        sys.stderr.write("（旧版改写路径；更高质量可用 --llm，离线安全替换可用 replace）\n")
+        target = ROOT / "scripts" / "humanize_cn.py"
+        return subprocess.run([sys.executable, str(target), *argv]).returncode
+
+    # --quick / --compare belong to the offline replacement stage now — same
+    # promise the old README made for them (纯替换，极快), delivered by the
+    # scene-routed replacer instead of the deprecated full pipeline.
+    if "--quick" in argv or "--compare" in argv:
+        fwd = [a for a in argv if a != "--quick"]
+        target = ROOT / "scripts" / "replace_cn.py"
+        return subprocess.run([sys.executable, str(target), *fwd]).returncode
 
     ap = argparse.ArgumentParser(
         description="v6 去 AI 腔改写（三段流水线）",

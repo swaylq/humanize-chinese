@@ -1,19 +1,16 @@
 ---
 name: humanize-chinese
 description: >
-  中文文章去 AI 腔。三段串联：LLM 按写作指南直接写出不带 AI 腔的初稿；LLM 定点拆掉
-  已有文本里的套话和模板句式；Python 只移动标点调整断句节奏（去标点后字符序列必须不变）。
-  离线那档零依赖零 API key，接大模型的两档需要 OPENROUTER_API_KEY。
-  统一 CLI: ./humanize {detect,rewrite,write,academic,style,compare}。
-  每次改写过两道关：事实关（数字/专名/段落数少一个就打回）+ 通顺关（三模型评审，
-  两票以上指出同一病句就打回，三次不过原样返回）。五份样本实测通顺度 4.0-5.0、零病句。
-  ⚠️ 本工具**不以压低检测分为目标**。实测（2026-08，五个当前模型 vs 真人公开语料，
-  等长对照）：科普/新闻 0.837、社交 0.771、学术 0.621、小说 0.479、
-  长篇博客 0.155（**低于 0.5 意味着方向是反的**）。分文体差别极大，详见「关于检测分」。
+  中文去 AI 腔一整套（装完即用，零 API Key —— 装了本 skill 的 agent 自己就是那个 LLM）。
+  三个流程：① 生成即去 AI —— 写中文时按本 skill 的写作指南落笔，初稿就不带 AI 腔；
+  ② 复查改写 —— 产出后对照本 skill 的清单再过一遍，定点拆模板句式；
+  ③ Python 词语替换收尾 —— ./humanize replace 按文体自动路由词表（学术 120+ 条 /
+  通用 220+ 条），只做短语级、只在子句边界替换，改完自动核对数字/专名/段落。
+  另有检测（0-100 分）、风格转换、学术降重等 CLI。
   Use when user says: "去AI味", "降AIGC", "人性化文本", "humanize chinese", "AI检测",
   "AIGC降重", "去除AI痕迹", "文本改写", "论文降重", "知网检测", "维普检测", "AI写作检测",
   "让文字更自然", "detect AI text", "humanize text", "make text human-like",
-  "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写"
+  "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写", "写一篇"
 allowed-tools:
   - Read
   - Write
@@ -23,23 +20,29 @@ allowed-tools:
 
 # Humanize Chinese AI Text v6
 
-检测和改写中文 AI 生成文本的完整工具链。可独立运行（统一 CLI 或独立脚本），也可作为 LLM prompt 指南使用。
+一整套中文去 AI 腔流水线。装完直接用：你（agent）负责前两个流程，Python 脚本负责第三个。
 
-**v6 的核心变化：改写目标从「压低检测分」换成「改完读起来像人写的」。**
-上一版为了压分去乱换同义词、插入过渡句、打乱句序，分数降得多，但写出的是病句
-（三模型评审：通顺度 2.0/5，每份样本 5-17 处病句）。v6 三段串联、两道关把守，
-同样五份样本 4.0-5.0、零病句。旧行为仍可用：`--legacy`。
+| 流程 | 什么时候 | 怎么做 |
+|---|---|---|
+| **① 生成即去 AI** | 用户让你**写**中文时 | 按下方「流程 ①：写作指南」落笔，初稿就不带 AI 腔 |
+| **② 复查改写** | 拿到初稿（自己写的或用户给的）| 按下方「流程 ②：改写清单」定点过一遍，只动踩线的句子 |
+| **③ 词语替换收尾** | ② 完成后 | `./humanize replace 稿.txt -o 出稿.txt --compare` —— 自动识别文体路由词表，离线 |
+
+三个流程**顺序执行**。人味在 ① 产生，② 只能修不能补，③ 是机械收尾。
+为什么是这个顺序：实测从零写能把句长节奏做进人类区间（变异系数 0.62 vs 人类 0.52），
+而事后改写只能到 0.31 —— 节奏补不回来，必须落笔时就有。
 
 ## CLI Tools
 
 ### 统一 CLI（推荐）
 
 ```bash
-# 三档改写，按手上有什么选
-./humanize rewrite 文本.txt -o 改后.txt              # 离线，只调断句节奏，零 API key
-./humanize rewrite 文本.txt --llm -o 改后.txt        # 加 LLM 定点拆套话（需 key）
-./humanize write "写一篇讲复利的科普" -o 出稿.txt      # 从零写一篇本来就没 AI 腔的（需 key）
-./humanize rewrite 文本.txt --legacy                 # 旧版纯规则改写（已弃用，会写病句）
+./humanize replace 文本.txt -o 改后.txt --compare    # 流程 ③：按文体路由的词语替换（离线）
+./humanize replace 论文.txt --scene academic         # 显式指定文体（auto/general/academic/social/novel）
+./humanize rewrite 文本.txt -o 改后.txt              # 离线断句节奏
+./humanize rewrite 文本.txt --llm -o 改后.txt        # 用外部 API 跑 ②+③（可选，需 OPENROUTER_API_KEY）
+./humanize write "写一篇讲复利的科普" -o 出稿.txt      # 用外部 API 跑 ①→③（可选，需 key）
+./humanize rewrite 文本.txt --legacy                 # 旧版全量改写器（降分多但会写病句）
 
 # 检测与其它
 ./humanize detect 文本.txt -v                        # 检测 + 详细（分数怎么看见下方说明）
@@ -101,6 +104,8 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 | `-s` | 仅评分 |
 | `-j` | JSON 输出 |
 | `-o` | 输出文件 |
+| `--scene`（replace）| auto / general / academic / social / novel，词表路由 |
+| `--compare`（replace）| 打印改写前后检测分 |
 | `-a` | 激进模式 |
 | `--seed N` | 固定随机种子 |
 | `--scene` | general / academic / novel / auto（detect_cn）—— auto 按 ≥1500 字切 longform LR |
@@ -112,17 +117,16 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 | `--no-humanize` | style 转换前不先去 AI 词 |
 | `--rule-only` | detect 只用规则层（跳 LR 融合） |
 
-### 工作流
+### 工作流（三流程版）
 
 ```bash
-# 1. 检测
-./humanize detect document.txt -v
-# 2. 改写 + 对比
-./humanize compare document.txt -a -o clean.txt
-# 3. 验证
-./humanize detect clean.txt -s
-# 4. 可选：转风格
-./humanize style clean.txt --style zhihu -o final.txt
+# ① 写：按「流程 ①：写作指南」产出 draft.txt（agent 自己完成，无命令）
+# ② 改：按「流程 ②：改写清单」定点过一遍，存 revised.txt（agent 自己完成）
+# ③ 收尾：
+./humanize replace revised.txt -o final.txt --compare
+# 可选：检测 / 转风格
+./humanize detect final.txt -v
+./humanize style final.txt --style zhihu -o styled.txt
 ```
 
 ### HC3-Chinese 基准测试
@@ -160,11 +164,39 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 
 ---
 
-## LLM 直接使用指南
+## 流程 ①：写作指南 —— 生成时就别写出 AI 腔
 
-当用户要求"去 AI 味"、"降 AIGC"、"人性化文本"、"改成人话"时，如果无法运行 CLI 工具，按以下流程手动处理。
+用户让你**写**中文时（而不是改现成的），按这份指南落笔。人味来自内容，
+后面两个流程只能修不能补。完整版见 `skills/write-cn/SKILL.md`，核心四条：
 
-### 第一步：检测 AI 写作模式
+**1. 先备料再动笔。** 至少凑齐三件：一个带单位和参照的具体数字、一个能指名道姓的
+东西（人/地方/产品/时间点）、一个出乎意料的事实、一个真实场景、一处可能有人不同意
+的判断。凑不齐就问用户要，不要用漂亮话填坑。
+
+**2. 禁语姿要整组禁**（只禁头一个词，模型会滑到同义变体，语气分毫不变）：
+价值拔高骨架（不是X而是Y/不仅…更是…/真正的X是…）、意义拔高（标志着/体现了/
+具有重要意义）、宣传腔（赋能/打造/深度融合/全方位）、过渡废话（综上所述/值得注意
+的是/与此同时）、报菜名开场（先说结论/简单来说）、万能展望结尾（未来可期）、
+模板开头（随着…的不断发展/在当今…时代）、三段式标签（首先…其次…最后）。
+
+**3. 节奏。** 每段至少一个不到 10 字的短句，也要有铺得开的长句；段落不等厚；
+书面连接词（因此/然而/此外）全文不超过 2 处；对偶句压到最低。
+
+**4. 别做的。** 不删破折号（中文 AI 用得比人少，方向和英文相反）、不硬凑语气词、
+不通篇短句、不砍副词、不为分数改标点。
+
+写完自查：材料找得出来吗？八组禁语姿有漏网吗？句长有起伏吗？
+**反向检查**：段落变薄、句子变齐、判断被磨平 —— 中一条就回滚。
+
+---
+
+## 流程 ②：改写清单 —— 拿到稿子后定点过一遍
+
+对自己 ① 的产出、或用户给的任何稿子，按下面的清单**定点修改，不是重写**：
+没踩清单的句子一个字不碰；数字、专名、引文、段落数一个不动；原文没有的内容不许加。
+完整版见 `skills/deai-rewrite/SKILL.md`。
+
+### 先扫一遍：检测 AI 写作模式
 
 扫描文本中的以下模式，按严重程度分类：
 
@@ -211,7 +243,7 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - 开头方式重复
 - 信息熵低（用词可预测）
 
-### 第二步：改写策略
+### 逐条拆：命中什么改什么
 
 按以下顺序处理：
 
@@ -243,7 +275,7 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 **6. 段落节奏**
 打破每段差不多长的格局。有的段落 2 句话，有的 5 句话，像人写东西时自然的长短变化。
 
-### 第三步：学术论文特殊处理
+### 学术论文特殊处理（不能口语化）
 
 当文本是学术论文时，改写规则不同——不能口语化，要保持学术严谨性：
 
@@ -285,7 +317,14 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - **打破结构均匀度：**
   调整段落长度，避免每段都一样。合并过短的段落，拆分过长的。
 
-### 第四步：验证 —— 验的是通顺，不是分数
+### 改完自查 —— 验的是通顺，不是分数
+
+四条过完，跑流程 ③ 收尾：
+
+```bash
+./humanize replace 稿.txt -o 出稿.txt --compare
+```
+
 
 改写完成后先自己读一遍，逐条过：
 
