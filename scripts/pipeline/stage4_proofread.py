@@ -32,10 +32,13 @@ import guards  # noqa: E402
 SKILL_PATH = ROOT / "skills" / "proofread-cn" / "SKILL.md"
 DEFAULT_MODEL = "anthropic/claude-opus-5"
 
-# At least this share of characters must be identical (as a contiguous-match
-# ratio). A one-char punctuation fix in 1,300 chars scores ~0.999; wholesale
-# rephrasing of even two sentences in a short text drops well below.
-SCOPE_MIN = 0.88
+# At least this share of characters must be identical (contiguous-match
+# ratio). Calibrated twice: at the original errors-only mandate this was 0.88;
+# when sway widened stage ④ to also smooth awkward phrasing (2026-08-24,
+# "稍微改的好读一点"), lightly rewording a couple of clunky sentences in a
+# 400-char text lands around 0.85, so the floor moved to 0.78. Wholesale
+# rewriting still scores far below and still gets discarded.
+SCOPE_MIN = 0.78
 
 
 def load_skill(path: pathlib.Path = SKILL_PATH) -> str:
@@ -55,7 +58,7 @@ def scope_ok(before: str, after: str) -> tuple[bool, float]:
 def check(before: str, after: str) -> list[str]:
     """All the reasons this proofread is unacceptable; empty = fine."""
     problems = guards.check(before, after,
-                            min_length_ratio=0.92, max_length_ratio=1.08)
+                            min_length_ratio=0.90, max_length_ratio=1.10)
     ok, ratio = scope_ok(before, after)
     if not ok:
         problems.append(f"改动范围过大（相似度 {ratio:.2f} < {SCOPE_MIN}）——"
@@ -71,7 +74,7 @@ def proofread(text: str, *, model: str = DEFAULT_MODEL,
     system = (load_skill()
               + "\n\n---\n\n你现在按上面这份说明工作。只输出改完的正文，"
                 "没有错误就逐字原样返回。不解释、不加前言。")
-    prompt = f"请对下面这段中文做纠错（只改错词、病句、标点）：\n\n{text}"
+    prompt = f"请对下面这段中文做纠错顺句（修错词、病句、标点，把拗口和用词不准的地方轻手顺一顺）：\n\n{text}"
 
     for attempt in range(2):
         try:
@@ -97,8 +100,8 @@ def proofread(text: str, *, model: str = DEFAULT_MODEL,
             print(f"  第 {attempt + 1} 次越权: {'; '.join(problems)}",
                   file=sys.stderr)
         prompt = (f"你上一次的修改越权了：{'; '.join(problems)}。\n\n"
-                  "重做一次。只修真正的错词、病句、标点；"
-                  "语法正确的句子一个字不许动；没有错误就逐字原样返回。\n\n"
+                  "重做一次。修错词、病句、标点，拗口处轻手顺一顺；"
+                  "本来就通顺的句子一个字不许动；大幅重写不允许。\n\n"
                   f"原文：\n\n{text}")
 
     if verbose:
@@ -107,7 +110,7 @@ def proofread(text: str, *, model: str = DEFAULT_MODEL,
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="第 ④ 段：纠错（错词/病句/标点，其他不动）")
+    ap = argparse.ArgumentParser(description="第 ④ 段：纠错顺句（错词/病句/标点/拗口处，轻手）")
     ap.add_argument("file")
     ap.add_argument("-o", "--output")
     ap.add_argument("-m", "--model", default=DEFAULT_MODEL)
