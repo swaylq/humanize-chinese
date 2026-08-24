@@ -56,11 +56,18 @@ def _api_key() -> str:
 
 def chat(model: str, prompt: str, *, system: str | None = None,
          max_tokens: int = 8000, temperature: float | None = None,
+         reasoning_effort: str | None = None,
          retries: int = 3, timeout: int = 300) -> str:
     """One-shot completion. Returns assistant text, raises on hard failure.
 
-    Reasoning models on OpenRouter spend part of max_tokens on hidden reasoning,
-    so max_tokens defaults high enough that the visible answer is not truncated.
+    Reasoning models on OpenRouter spend part of max_tokens on hidden thinking
+    and will happily spend ALL of it, returning empty content with
+    finish_reason=length. Measured 2026-08-24 on glm-5.3 asked for 1800
+    characters of fiction: it burned 12000 tokens, then 28000, producing nothing
+    both times. Capping the reasoning instead — reasoning_effort="low" —
+    returned the full answer using 1368 tokens total.
+    So: cap the thinking, do not raise the ceiling. Raising it costs money and
+    still fails; capping it is free and works.
     """
     messages = []
     if system:
@@ -70,6 +77,8 @@ def chat(model: str, prompt: str, *, system: str | None = None,
     payload = {"model": model, "messages": messages, "max_tokens": max_tokens}
     if temperature is not None:
         payload["temperature"] = temperature
+    if reasoning_effort is not None:
+        payload["reasoning"] = {"effort": reasoning_effort}
 
     last_err = None
     for attempt in range(retries):

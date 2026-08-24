@@ -142,8 +142,9 @@ def main() -> int:
                 raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
                            max_tokens=16000)
             except Exception:
+                # cap the hidden reasoning rather than raising the ceiling
                 raw = chat(model, WRITE_PROMPT.format(topic=topic, chars=chars),
-                           max_tokens=32000)
+                           max_tokens=16000, reasoning_effort="low")
         except Exception as exc:  # noqa: BLE001
             log(f"  FAIL {sid}: {str(exc)[:140]}")
             fail += 1

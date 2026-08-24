@@ -114,14 +114,16 @@ def main() -> int:
         nonlocal ok, fail
         sid, scene, model, topic, prompt = job
         try:
-            # Reasoning models spend part of the budget on hidden thinking and
-            # return empty content with finish_reason=length when it runs out.
-            # Observed 2026-08-24: 9 of 50 novel samples (1800 chars, the
-            # longest scene) died this way at 12000. Retry wider before failing.
+            # Reasoning models can spend the entire token budget on hidden
+            # thinking and return empty content. Raising the ceiling does not
+            # help (12000 then 28000 both produced nothing on glm-5.3);
+            # capping the reasoning does — same prompt came back complete in
+            # 1368 tokens at effort=low. Try normally, then cap.
             try:
                 raw = chat(model, prompt, max_tokens=12000)
             except Exception:
-                raw = chat(model, prompt, max_tokens=32000)
+                raw = chat(model, prompt, max_tokens=16000,
+                           reasoning_effort="low")
         except Exception as exc:  # noqa: BLE001
             log(f"  FAIL {sid}: {str(exc)[:160]}")
             fail += 1

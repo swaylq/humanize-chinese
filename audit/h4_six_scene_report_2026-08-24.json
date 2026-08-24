@@ -79,13 +79,13 @@
   "verdict": "接近盲猜"
  },
  "novel": {
-  "ai_n": 41,
-  "ai_mean": 15.6,
-  "ai_chars": 1767,
+  "ai_n": 50,
+  "ai_mean": 14.6,
+  "ai_chars": 1723,
   "human_n": 50,
   "human_mean": 20.6,
   "human_chars": 844,
-  "auc_raw": 0.42,
+  "auc_raw": 0.391,
   "matched": {
    "auc": null,
    "band": [

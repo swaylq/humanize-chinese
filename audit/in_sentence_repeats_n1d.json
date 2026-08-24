@@ -1,0 +1,199 @@
+{
+  "count": 22,
+  "samples_with_findings": 4,
+  "findings": [
+    {
+      "source": "sample_academic.txt",
+      "sent": "研究表明，智能化系统通过融入大数据剖析与机器学习算法，能够各维度地评估学生学习状况，这样一来实现真正意义上的因材施教",
+      "bigram": "学习",
+      "count": 2,
+      "gap": 15
+    },
+    {
+      "source": "sample_general.txt",
+      "sent": "老实说，智能评估系统能够各个层面地评判学习者的综合素质，不仅关注知识掌握程度，更注重能力的培养和素质的提升，还有，自适应学习平台能够根据学生的实时表现动态调整学习路径，为每位学习者给出个性化的学习体验",
+      "bigram": "学习",
+      "count": 5,
+      "gap": 8
+    },
+    {
+      "source": "sample_social.txt",
+      "sent": "在当今快节奏的生活中，时间管理对于每个人来说都具有至关重要的意义，注意，凭借合理规划和科学管理时间，不仅能够显著提升工作效率，更能够实现工作与生活的完美平衡，因而多方面提升整体生活质量",
+      "bigram": "生活",
+      "count": 3,
+      "gap": 17
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "在这个角色中，我需要与开发团队、设计师、市场营销团队以及客户进行频繁的交流",
+      "bigram": "团队",
+      "count": 2,
+      "gap": 11
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "开发",
+      "count": 2,
+      "gap": 19
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "发团",
+      "count": 2,
+      "gap": 19
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "团队",
+      "count": 4,
+      "gap": 5
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "设计",
+      "count": 3,
+      "gap": 14
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "关注",
+      "count": 2,
+      "gap": 13
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "产品经理需要成为团队之间的桥梁，而沟通就是那座桥梁的基石",
+      "bigram": "桥梁",
+      "count": 2,
+      "gap": 10
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "产品经理一定要在产品生命周期的每个阶段都维持清晰的目标，并一再适应市场变化",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 8
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "案例：在负责一个新产品的开发时，我发现市场竞争异常激烈，为了在市场中突围，我们决定专注于给出独特的用户体验",
+      "bigram": "市场",
+      "count": 2,
+      "gap": 12
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "在制定产品蓝图时，我与团队一起深入探究目标用户群体的需求和痛点，并将这些发现转化为具体的产品优势",
+      "bigram": "体的",
+      "count": 2,
+      "gap": 18
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "以满足用户未被满足的需求",
+      "bigram": "满足",
+      "count": 2,
+      "gap": 6
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "反思：通过这个经验，八成，我认识到产品方向不止是一个空洞的口号，而是指导产品决策的中心",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 19
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "这需要深入的市场研究和用户分析，以确保产品能够真正攻克用户的问题并在竞争中脱颖而出",
+      "bigram": "用户",
+      "count": 2,
+      "gap": 16
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "产品经理需要不断审视和调整产品策略，以应对市场的动态变化",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 13
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "产品经理得利用数据来评估产品的成功与失败，了解用户行为，并指导未来的开发方向",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 12
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "说到底，处理这一问题，我与数据分析师合作，深入调查数据背后的原因",
+      "bigram": "数据",
+      "count": 2,
+      "gap": 12
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "我们发现用户在某个关键功能上遇到了使用障碍，这直接影响了他们的使用体验",
+      "bigram": "使用",
+      "count": 2,
+      "gap": 14
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "数据驱动的决策，能够帮助产品经理更客观地评估产品表现，并发现潜在的麻烦",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 10
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "从加强沟通能力，到制定清晰的产品构想，再到利用数据推动决策，这些都是产品经理不可或缺的技能",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 20
+    }
+  ],
+  "diff_count": 4,
+  "diff_findings": [
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "开发",
+      "count": 2,
+      "gap": 19,
+      "src_count": 0,
+      "out_count": 1
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "顺着这个思路，在项目初期，我意识到开发团队和设计团队在理解需求上有分歧，开发团队倾向于关注技术实现，而设计团队则关注用户体验和界面设计",
+      "bigram": "发团",
+      "count": 2,
+      "gap": 19,
+      "src_count": 0,
+      "out_count": 1
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "产品经理一定要在产品生命周期的每个阶段都维持清晰的目标，并一再适应市场变化",
+      "bigram": "产品",
+      "count": 2,
+      "gap": 8,
+      "src_count": 5,
+      "out_count": 6
+    },
+    {
+      "source": "sample_long_blog.txt",
+      "sent": "案例：在负责一个新产品的开发时，我发现市场竞争异常激烈，为了在市场中突围，我们决定专注于给出独特的用户体验",
+      "bigram": "市场",
+      "count": 2,
+      "gap": 12,
+      "src_count": 0,
+      "out_count": 1
+    }
+  ]
+}
