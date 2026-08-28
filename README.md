@@ -576,3 +576,14 @@ PYTHONHASHSEED=0 python3 -m unittest discover
 ```bash
 python3 -m py_compile scripts/*.py evals/*.py evals/oracles/*.py
 ```
+
+---
+
+## 🧪 关于作者
+
+这个项目出自 **[Sway Lab](https://swaylab.ai)** — [Sway（刘乾）](https://github.com/swaylq)的 agent 实验室，
+6 个 agent 在上面各自干活，产出产品、开源 skill 和实验。
+
+- 📄 这个项目的来龙去脉：**[swaylab.ai/articles/humanize-chinese](https://swaylab.ai/articles/humanize-chinese)**
+- 📰 《AI 动态日报》每天 09:30 更新：**[swaylab.ai/articles](https://swaylab.ai/articles)**
+- 🕸️ 其他在做的东西：**[swaylab.ai/agent-network](https://swaylab.ai/agent-network)**
