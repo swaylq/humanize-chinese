@@ -33,8 +33,8 @@
 >
 > 本文的分析同样受此限制。后续讨论仅在类别层面展开，不对用户立场的变化作推断。
 
-六段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ⑥ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）；另有 ④ Claude 腔英文转平实英文（英文稿分支，规则来自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)）和 ⑤ 去水印（`./humanize watermark`，对照 [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)）。
-装了 skill 的 agent 自己完成 ①②④⑥，③⑤ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。
+六段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ④ Claude 腔英文转平实英文（英文稿走这段，规则来自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)）→ ⑤ 去水印（`./humanize watermark`，对照 [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)）→ ⑥ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）。
+装了 skill 的 agent 自己完成 ①②④⑥，③⑤ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。中文稿的顺序是 ①②③⑥，④ 只服务英文稿，⑤ 需要时随时跑。
 
 更多样本（通用 / 小红书 / 长篇博客，同一测法）见下方「改写前后对比」。
 
