@@ -6,8 +6,8 @@ description: >
   ② 复查改写 —— 产出后对照本 skill 的清单再过一遍，定点拆模板句式；
   ③ Python 词语替换 —— ./humanize replace 按文体自动路由词表（学术 120+ 条 /
   通用 220+ 条），只做短语级、只在子句边界替换，改完自动核对数字/专名/段落；
-  ④ Claude 腔转英文 —— 把 Claudish（Claude 助手腔英文）改写成平实英文，
-  规则提炼自 gvzdv/claudish-to-english；
+  ④ Claude 腔转中文 —— 把 Claude 助手腔的中文改写成平实中文，
+  规则提炼自 gvzdv/claudish-to-english 并本地化；
   ⑤ 去水印 —— ./humanize watermark 扫清零宽字符/双向控制符/同形替身，
   并对照 guillaumemeyer/watermarks-remover 说明统计水印的边界；
   ⑥ 纠错顺句 —— 修错词、病句、标点，拗口和用词不准处轻手顺一顺；改动范围有硬校验。
@@ -16,7 +16,7 @@ description: >
   "AIGC降重", "去除AI痕迹", "文本改写", "论文降重", "知网检测", "维普检测", "AI写作检测",
   "让文字更自然", "detect AI text", "humanize text", "make text human-like",
   "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写", "写一篇",
-  "claudish", "claudish to english", "去水印", "watermark remover", "remove watermark"
+  "claudish", "去claude腔", "助手腔", "去水印", "watermark remover", "remove watermark"
 allowed-tools:
   - Read
   - Write
@@ -26,18 +26,18 @@ allowed-tools:
 
 # Humanize Chinese AI Text v6
 
-一整套中文去 AI 腔流水线，外加英文和水印两段。装完直接用：你（agent）负责 ①②④⑥，Python 脚本负责 ③⑤。
+一整套中文去 AI 腔流水线。装完直接用：你（agent）负责 ①②④⑥，Python 脚本负责 ③⑤。
 
 | 流程 | 什么时候 | 怎么做 |
 |---|---|---|
 | **① 生成即去 AI** | 用户让你**写**中文时 | 按下方「流程 ①：写作指南」落笔，初稿就不带 AI 腔 |
 | **② 复查改写** | 拿到初稿（自己写的或用户给的）| 按下方「流程 ②：改写清单」定点过一遍，只动踩线的句子 |
 | **③ 词语替换** | ② 完成后 | `./humanize replace 稿.txt -o 出稿.txt --compare` —— 自动识别文体路由词表，离线 |
-| **④ Claude 腔转英文** | 稿子是**英文**、带 Claude 助手腔 | 读 `skills/declaude-en/SKILL.md` 照做，规则来自 gvzdv/claudish-to-english |
+| **④ Claude 腔转中文** | 稿子带 Claude 助手腔（对话残留、客套、解释癖） | 读 `skills/declaude-cn/SKILL.md` 照做，规则来自 gvzdv/claudish-to-english 的中文本地化 |
 | **⑤ 去水印** | 要清文本里的 AI 水印 | `./humanize watermark inspect/clean/survive`，边界见「流程 ⑤」 |
 | **⑥ 纠错顺句** | ③ 完成后 | 按下方「流程 ⑥：纠错清单」修错词、病句、标点，拗口处**轻手**顺一顺，其余不动 |
 
-中文主线是 ①→②→③→⑥，**顺序执行**；④ 是英文稿的分支，⑤ 独立，需要时随时跑。
+中文主线是 ①→②→③→⑥，**顺序执行**；稿子带 Claude 助手腔就在 ② 之后加跑 ④；⑤ 独立，需要时随时跑。
 人味在 ① 产生，② 只能修不能补，③ 是机械替换，⑥ 纠错顺句、动作最轻。
 为什么是这个顺序：实测从零写能把句长节奏做进人类区间（变异系数 0.62 vs 人类 0.52），
 而事后改写只能到 0.31 —— 节奏补不回来，必须落笔时就有。
@@ -156,7 +156,7 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 ./humanize detect final.txt -v
 ./humanize style final.txt --style zhihu -o styled.txt
 
-# ④ Claude 腔英文 → 平实英文：agent 读 skills/declaude-en/SKILL.md 直接改，无命令
+# ④ Claude 腔转平实中文：agent 读 skills/declaude-cn/SKILL.md 直接改，无命令
 # ⑤ 去水印（独立，随时可跑）：
 ./humanize watermark inspect 稿子.txt
 ./humanize watermark clean 稿子.txt -o 干净.txt
@@ -326,14 +326,14 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - **打破结构均匀度：**
   调整段落长度，避免每段都一样。合并过短的段落，拆分过长的。
 
-## 流程 ④：Claude 腔英文 → 平实英文
+## 流程 ④：Claude 腔 → 平实中文
 
-稿子是**英文**、带着 Claude 助手腔（Claudish）时，读 `skills/declaude-en/SKILL.md` 照做。
-要领：日常词、短句子；事实、名字、数字、文件路径一个不动；代码块不碰；只输出改写后的正文。
-这段是英文稿的分支，中文稿不走。规则提炼自
-[gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)（2.4k star）的内置改写
-prompt —— 那个仓库本身是个 Claude Code 显示插件（把助手消息实时改写成平实英文显示），
-我们借的是它的改写规则，由 agent 直接执行，不装插件。
+稿子带着 Claude 助手腔（对话残留、客套、解释癖）时，读 `skills/declaude-cn/SKILL.md` 照做。
+要领：日常的词、短句子；事实、名字、数字、文件路径一个不动；代码块不碰；只输出改写后的正文。
+和 ② 的分工：模板句式、套话归 ② 拆，助手腔归这段；稿子带助手腔就在 ② 之后加跑这段。
+规则提炼自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)（2.4k star）
+的内置改写 prompt —— 那个仓库本身是个 Claude Code 显示插件（把助手消息实时改写成平实文字显示），
+我们借的是它的改写规则，本地化成中文，由 agent 直接执行，不装插件。
 
 ## 流程 ⑤：去水印
 

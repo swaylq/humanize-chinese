@@ -33,8 +33,8 @@
 >
 > 本文的分析同样受此限制。后续讨论仅在类别层面展开，不对用户立场的变化作推断。
 
-六段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ④ Claude 腔英文转平实英文（英文稿走这段，规则来自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)）→ ⑤ 去水印（`./humanize watermark`，对照 [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)）→ ⑥ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）。
-装了 skill 的 agent 自己完成 ①②④⑥，③⑤ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。中文稿的顺序是 ①②③⑥，④ 只服务英文稿，⑤ 需要时随时跑。
+六段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ④ Claude 腔转平实中文（助手腔重的稿子走这段，规则来自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)，已本地化）→ ⑤ 去水印（`./humanize watermark`，对照 [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)）→ ⑥ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）。
+装了 skill 的 agent 自己完成 ①②④⑥，③⑤ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。中文主线是 ①②③⑥；稿子带 Claude 助手腔就加上 ④，⑤ 需要时随时跑。
 
 更多样本（通用 / 小红书 / 长篇博客，同一测法）见下方「改写前后对比」。
 
@@ -132,7 +132,7 @@
 | ① 生成即去 AI | LLM（按 skill 写作指南） | 落笔就不带 AI 腔：先备料再动笔、整组禁语姿、句长有起伏 |
 | ② 复查改写 | LLM（按 skill 自查清单） | 对照清单再过一遍：拆模板句式、删套话，只动踩线的句子 |
 | ③ 词语替换 | Python（离线，零依赖） | 按文体自动路由词表：学术稿走学术词库（120+ 条），通用稿走通用词库（220+ 条），改完自动核对数字、专名、段落一个不丢 |
-| ④ Claude 腔转英文 | LLM（按 declaude-en 清单） | 英文稿分支：Claudish → 平实英文，事实/数字/路径不动，规则来自 gvzdv/claudish-to-english |
+| ④ Claude 腔转中文 | LLM（按 declaude-cn 清单） | 专拆助手腔：对话残留、客套、解释癖，事实/数字/路径不动，规则来自 gvzdv/claudish-to-english 的中文本地化 |
 | ⑤ 去水印 | Python（离线，零依赖） | 扫清零宽字符/双向控制符/同形替身；统计水印的边界如实说明，对照 guillaumemeyer/watermarks-remover |
 | ⑥ 纠错顺句 | LLM（按 skill 纠错清单） | 修错词、病句、标点，拗口处轻手顺一顺 —— 改动范围有硬校验，越权整体作废 |
 
@@ -302,7 +302,7 @@ python scripts/detect_cn.py 论文.txt --scene academic  # 学术论文（显式
 | 📦 零依赖 | 纯 Python 标准库，下载即用。可选 CiLin 词林（`--cilin`，38873 词 + 语义过滤） |
 | 📐 基准测试 | HC3-Chinese 12853 对人类/AI 真实问答回归测试（200 样本 fused 模式 95.5% 正确率）|
 | 🕳️ 水印 | 清掉零宽字符、双向控制符这类看得见的载体（**中文排版原样保留**），再量一量改写把采样水印削弱了多少 |
-| 🗣️ Claude 腔转英文 | Claudish → 平实英文（declaude-en 子 skill）：日常词短句子，事实/数字/文件路径一个不动，规则提炼自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) |
+| 🗣️ Claude 腔转中文 | 专拆 Claude 助手腔（declaude-cn 子 skill）：对话残留、客套、解释癖，事实/数字/文件路径一个不动，规则提炼自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) 并本地化 |
 
 ---
 
