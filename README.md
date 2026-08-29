@@ -1,6 +1,6 @@
 # 🔧 中文 AI 文本去痕迹工具 &nbsp;[![Tweet](https://img.shields.io/badge/share%20on-Twitter%2FX-000000?style=flat-square&logo=x)](https://twitter.com/intent/tweet?text=humanize-chinese%20%E2%80%94%20%E5%85%8D%E8%B4%B9%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C%E7%9A%84%E4%B8%AD%E6%96%87%20AI%20%E6%96%87%E6%9C%AC%E5%8E%BB%E7%97%95%E8%BF%B9%E5%B7%A5%E5%85%B7%EF%BC%8C%E6%A3%80%E6%B5%8B%20%2B%20%E6%94%B9%E5%86%99%E4%B8%80%E6%AD%A5%E5%88%B0%E4%BD%8D%EF%BC%8C%E9%9B%B6%20LLM%20%E9%9B%B6%20API%20Key&url=https%3A%2F%2Fgithub.com%2Fswaylq%2Fhumanize-chinese&hashtags=AIGC%2C%E4%B8%AD%E6%96%87NLP%2C%E5%BC%80%E6%BA%90%E5%B7%A5%E5%85%B7)
 
-**免费、本地运行、零依赖、零 LLM，四段式改写。检测 + 改写一步到位。**
+**免费、本地运行、零依赖、零 LLM，六段式改写。检测 + 改写一步到位。**
 
 [![GitHub stars](https://img.shields.io/github/stars/swaylq/humanize-chinese?style=flat-square)](https://github.com/swaylq/humanize-chinese)
 [![ClawHub](https://img.shields.io/badge/clawhub-humanize--chinese-blue?style=flat-square)](https://clawhub.ai/swaylq/skills/humanize-chinese)
@@ -33,8 +33,8 @@
 >
 > 本文的分析同样受此限制。后续讨论仅在类别层面展开，不对用户立场的变化作推断。
 
-四段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ④ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）。
-装了 skill 的 agent 自己完成 ①②④，③ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。
+六段 = ① 按写作指南生成 → ② 按清单复查改写 → ③ `./humanize replace` 词表收尾 → ⑥ 纠错顺句（修错词、病句、标点，拗口处轻手顺一顺）；另有 ④ Claude 腔英文转平实英文（英文稿分支，规则来自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)）和 ⑤ 去水印（`./humanize watermark`，对照 [guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)）。
+装了 skill 的 agent 自己完成 ①②④⑥，③⑤ 离线运行 —— 全程零注册、零付费、零联网、零 API Key。
 
 更多样本（通用 / 小红书 / 长篇博客，同一测法）见下方「改写前后对比」。
 
@@ -122,9 +122,9 @@
 
 ---
 
-## 🧩 四段式去 AI（v6 架构）
+## 🧩 六段式去 AI（v6 架构）
 
-一个 skill 装完就是一整套流水线，四段递进，不用配任何 API Key ——
+一个 skill 装完就是一整套流水线，中文主线四段递进（①②③⑥），外加英文和水印两段，不用配任何 API Key ——
 装了这个 skill 的 agent 自己就是那个 LLM：
 
 | 段 | 谁来做 | 做什么 |
@@ -132,14 +132,18 @@
 | ① 生成即去 AI | LLM（按 skill 写作指南） | 落笔就不带 AI 腔：先备料再动笔、整组禁语姿、句长有起伏 |
 | ② 复查改写 | LLM（按 skill 自查清单） | 对照清单再过一遍：拆模板句式、删套话，只动踩线的句子 |
 | ③ 词语替换 | Python（离线，零依赖） | 按文体自动路由词表：学术稿走学术词库（120+ 条），通用稿走通用词库（220+ 条），改完自动核对数字、专名、段落一个不丢 |
-| ④ 纠错顺句 | LLM（按 skill 纠错清单） | 修错词、病句、标点，拗口处轻手顺一顺 —— 改动范围有硬校验，越权整体作废 |
+| ④ Claude 腔转英文 | LLM（按 declaude-en 清单） | 英文稿分支：Claudish → 平实英文，事实/数字/路径不动，规则来自 gvzdv/claudish-to-english |
+| ⑤ 去水印 | Python（离线，零依赖） | 扫清零宽字符/双向控制符/同形替身；统计水印的边界如实说明，对照 guillaumemeyer/watermarks-remover |
+| ⑥ 纠错顺句 | LLM（按 skill 纠错清单） | 修错词、病句、标点，拗口处轻手顺一顺 —— 改动范围有硬校验，越权整体作废 |
 
 ```bash
-# 第 ③ 段单独跑（离线）：
+# 第 ③⑤ 段单独跑（离线）：
 ./humanize replace 文本.txt -o 改后.txt --compare   # 自动识别文体，前后分数对比
+./humanize watermark inspect 稿子.txt               # 扫零宽字符/同形替身
+./humanize watermark clean 稿子.txt -o 干净.txt      # 清掉，清完再 inspect 一遍验证
 ```
 
-四段的完整说明见 [SKILL.md](SKILL.md)；实测数据的完整版见[项目主页](https://swaylq.github.io/humanize-chinese/)。
+六段的完整说明见 [SKILL.md](SKILL.md)；实测数据的完整版见[项目主页](https://swaylq.github.io/humanize-chinese/)。
 
 ---
 
@@ -297,6 +301,149 @@ python scripts/detect_cn.py 论文.txt --scene academic  # 学术论文（显式
 | ⚡ 速度 | 10k 字符 `--quick` 模式 0.3 秒，完整模式 5 秒 |
 | 📦 零依赖 | 纯 Python 标准库，下载即用。可选 CiLin 词林（`--cilin`，38873 词 + 语义过滤） |
 | 📐 基准测试 | HC3-Chinese 12853 对人类/AI 真实问答回归测试（200 样本 fused 模式 95.5% 正确率）|
+| 🕳️ 水印 | 清掉零宽字符、双向控制符这类看得见的载体（**中文排版原样保留**），再量一量改写把采样水印削弱了多少 |
+| 🗣️ Claude 腔转英文 | Claudish → 平实英文（declaude-en 子 skill）：日常词短句子，事实/数字/文件路径一个不动，规则提炼自 [gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english) |
+
+---
+
+## 🕳️ 水印：Claude 从 2026 年 8 月开始给文字盖章
+
+2026-08-02 之后发布的 Claude 模型，写出来的每段文字都带水印，所有入口都带 —— API、
+Claude 网页版、Claude Code、以及跑在 AWS Bedrock / Google Cloud / Microsoft Foundry
+上的实例。Anthropic 说了它属于哪一类：Google DeepMind 的 SynthID-Text，做法是拿密钥
+和前面几个字算一个哈希，用它来偏置下一个字的采样。Gemini 用的是同一类。
+
+**先分清两件事**。很多「去水印工具」要么什么都没做，要么把文章弄坏了，根子都在把这
+两件混成了一件：
+
+| | 藏在哪 | 能不能删干净 | 能不能验证 |
+|---|---|---|---|
+| **看得见的载体** | 零宽字符、双向控制符、标签字符、同形字 | 能，一个不剩 | 能，再看一眼就知道 |
+| **采样水印** | 选词本身，没有任何一个字节可以指着说就是它 | 只能靠改写削弱 | 不能。密钥在 Anthropic 手上 |
+
+Anthropic 公布的机制是采样偏置，不是往文字里插不可见字符，所以第一种基本不是冲着
+Claude 去的。但复制粘贴、别的工具、别人转发过的稿子，都会把这类字符带进来，所以还是得扫。
+（Claude 生成的**图片**另有一套 C2PA 签名元数据，那是文件层面的事，本仓库只管文字，
+不碰图片。）
+
+```bash
+./humanize watermark inspect 稿子.txt              # 看有没有
+./humanize watermark clean 稿子.txt -o 干净.txt     # 清掉
+```
+
+### 为什么不能直接拿英文那套工具
+
+GitHub 上星最多的两个（`watermarks-remover`、`ScrubAI`）都做两件对英文正确、对中文
+有害的事。本机 Python 3.9.6 / unicodedata 13.0.0 实测：
+
+```
+NFKC 归一化
+  他说：「这不对。」（真的）   →   他说:「这不对。」(真的)
+
+U+3000 当成空格同形字处理
+  　　这是一段。               →     这是一段。
+```
+
+全角冒号和括号变成了半角；段首那两个全角空格 —— 中文标准的首行缩进 —— 变成了两个
+ASCII 空格。这不是清理，这是弄坏，而且弄坏得很显眼：一眼就能看出这段文字过了机器。
+这两条在本仓库都是关掉的。
+
+反过来，那两个工具不查一类只有中文才有的载体：**和常用汉字长得一模一样、码位不同的字**。
+
+| 替身 | 渲染出来 | 真正的字 |
+|---|---|---|
+| `U+2F00` 康熙部首一 | ⼀ | `U+4E00` 一 |
+| `U+2EF3` 康熙部首龟 | ⻳ | `U+9F9F` 龟 |
+| `U+F900` 兼容汉字 | 豈 | `U+8C48` 豈 |
+
+214 个康熙部首、115 个部首补充、1002 个兼容汉字。换一个进去，屏幕上看不出来，复制粘贴
+带得走，英文工具一个都不查，每换一个就藏一个比特。本仓库把它们折回对应的汉字。
+
+### 采样水印：能测的只有「还剩多少」
+
+密钥不公开，所以没有任何本地工具能告诉你 Anthropic 的检测器会不会响。能测的是另一件事：
+**原文的计分窗口，改写之后还剩多少个原封不动**。
+
+SynthID-Text 给每个字打分，用的是它前面 4 个字算出来的哈希，也就是说打分的单位是一个
+5 字窗口。这个窗口整个没被动过，它那一分就还在。数一数还剩多少，就知道信号削弱了多少：
+
+```bash
+./humanize rewrite 原文.txt --llm -o 改写.txt
+./humanize watermark survive 原文.txt 改写.txt
+```
+
+拿本仓库自带的学术样本（288 字）实测，各条改写路径的结果：
+
+| 改写方式 | 5 字窗存活率 | 检测端 z 大约剩 |
+|---|---|---|
+| `rewrite`（离线，只调断句节奏） | 100% | 1.00 倍 |
+| `replace`（词表替换） | 73.1% | 0.73 倍 |
+| `academic`（学术降重 11 维度） | 54.1% | 0.51 倍 |
+| `style --style xiaohongshu` | 44.4% | 0.44 倍 |
+| `rewrite --llm`（LLM 定点改写） | 41.6% | 0.54 倍 |
+
+**结论不太好听：本仓库现有的任何一档，都不足以把 Claude 的水印弄掉。** 最狠的一档也
+只让检测端的 z 掉到四成出头。Anthropic 自己的说法是一致的 ——「轻度编辑大概去不干净，
+每个词都换掉的彻底重写可以」。要真去掉，只有 `write` 那条路：拿原文当素材，重新写一篇。
+
+### 「z 剩多少」这个数是怎么来的，凭什么信
+
+绿名单水印的检测公式是
+
+```
+z = (绿字数 - γ×T) / sqrt(T × γ × (1-γ))        T = 检测端读到的计分位置数
+```
+
+不拿密钥去改写，等于让存活下来的 `kept` 个位置保留原来的偏置，其余位置只按概率碰绿。
+分子跟着 `kept` 走，分母跟着改写后的长度走，于是
+
+```
+z_改写后 / z_改写前 = kept / sqrt(T_改写后 × T_改写前)
+```
+
+长度自己就会动 z，所以这个数不等于存活率。把一篇带水印的文章原样砍掉一半，存活率是
+50%，z 却还剩 71% —— 检测端读到的字少了一半，它本来也没那么有把握。
+
+这个推导可以验，仓库里就有验它的东西：
+
+```bash
+python3 evals/watermark_sim.py
+```
+
+它按 Kirchenbauer 绿名单的做法，用本仓库自己的 n-gram 频率表生成一段带水印的中文，
+然后一边真的跑检测器算 z，一边用 `survive` 报的倍数去预测，两列并排放。5000 字、
+γ=0.25、δ=2.0、H=4 的一次运行：
+
+```
+                                          预测 z    实测 z
+  改动 10%   存活 58.8%                     41.00     42.74
+  改动 30%   存活 16.3%                     11.35     10.98
+  改动 50%   存活  3.1%                      2.19      2.42
+
+  只截断不改字：
+  留下 50%   存活 50.0%                     49.26     49.28
+  留下 10%   存活  9.9%                     21.96     21.78
+```
+
+最大误差 1.74，而 z 在无水印文本上服从标准正态分布，一个标准差就是 1.00 —— 误差已经
+落在噪声里。下半张表还说明了长度那一项不能省：只截不改留下一成文字，光看存活率会以为
+削到了一成，实际上检测端的 z 还有三成。
+
+说清楚边界：这里的密钥是那个文件里的一个常量，所以能算出真实的 z。对 Claude 的水印
+算不出来，谁都算不出来。这个模拟证明的是**估计公式对这一类水印是对的**，不是证明
+「你的文章已经安全了」。任何工具跟你说后面这句，它在说它验证不了的事。
+
+### 用在什么地方
+
+作者拿回自己稿子的处置权：自己写的、自己改的、署自己名发的东西，不该因为中间用模型
+润过一遍就带着别人的标记出门。不适用的场景也很清楚 —— 拿它去糊弄学术诚信审查，或者
+声称一篇模型写的东西是自己一个字一个字写的，那是另一回事，工具帮不了你，也不该帮。
+
+相关项目：[guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)
+（1.9w star）走另一条路 —— 文件级溯源元数据（C2PA / EXIF / XMP，覆盖 PNG/JPEG/PDF/DOCX/MP4 等）
+和多厂商统计水印（Gemini SynthID-Text、OpenAI、开源绿名单/Aaronson 系）。本仓库只管文字：
+看得见的载体清干净，采样水印量残留、说实话。要清文件元数据或图片水印，去那边。
+
 
 ---
 
@@ -393,6 +540,9 @@ python scripts/academic_cn.py 论文.txt -o 改后.txt -a --compare
 ./humanize academic [file] [-o out] [--detect-only] [-a] [--compare] [--quick]
 ./humanize style    [file] --style S [-o out] [--no-humanize]
 ./humanize compare  [file] [-o out] [--scene S] [-a]
+./humanize watermark inspect [file] [--json]
+./humanize watermark clean   [file] [-o out] [--fullwidth-latin] [--confusables] [--keep-bidi]
+./humanize watermark survive [改写前] [改写后] [--json]
 ./humanize doctor
 ```
 
@@ -404,6 +554,7 @@ python scripts/humanize_cn.py [file] ...
 python scripts/academic_cn.py [file] ...
 python scripts/style_cn.py [file] --style S ...
 python scripts/compare_cn.py [file] ...
+python scripts/watermark_cn.py inspect|clean|survive ...
 python scripts/check_assets.py
 ```
 
@@ -425,6 +576,9 @@ python scripts/check_assets.py
 | `--secondary-weight` | secondary signal 权重（默认 0.2，0 关闭） |
 | `--compare` | 改写前后双评分对比（academic） |
 | `--no-humanize` | style 转换前不先去 AI 词 |
+| `--fullwidth-latin` | 全角拉丁字母改半角（watermark clean，默认不动）|
+| `--confusables` | 西里尔/希腊同形字母改拉丁（watermark clean）|
+| `--keep-bidi` | 保留双向控制符，文里真的夹了阿拉伯语时用（watermark clean）|
 
 ### 数据资产状态
 

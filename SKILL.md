@@ -2,16 +2,21 @@
 name: humanize-chinese
 description: >
   中文去 AI 腔一整套（装完即用，零 API Key —— 装了本 skill 的 agent 自己就是那个 LLM）。
-  四个流程：① 生成即去 AI —— 写中文时按本 skill 的写作指南落笔，初稿就不带 AI 腔；
+  六个流程：① 生成即去 AI —— 写中文时按本 skill 的写作指南落笔，初稿就不带 AI 腔；
   ② 复查改写 —— 产出后对照本 skill 的清单再过一遍，定点拆模板句式；
   ③ Python 词语替换 —— ./humanize replace 按文体自动路由词表（学术 120+ 条 /
   通用 220+ 条），只做短语级、只在子句边界替换，改完自动核对数字/专名/段落；
-  ④ 纠错顺句 —— 修错词、病句、标点，拗口和用词不准处轻手顺一顺；改动范围有硬校验。
+  ④ Claude 腔转英文 —— 把 Claudish（Claude 助手腔英文）改写成平实英文，
+  规则提炼自 gvzdv/claudish-to-english；
+  ⑤ 去水印 —— ./humanize watermark 扫清零宽字符/双向控制符/同形替身，
+  并对照 guillaumemeyer/watermarks-remover 说明统计水印的边界；
+  ⑥ 纠错顺句 —— 修错词、病句、标点，拗口和用词不准处轻手顺一顺；改动范围有硬校验。
   另有检测（0-100 分）、风格转换、学术降重等 CLI。
   Use when user says: "去AI味", "降AIGC", "人性化文本", "humanize chinese", "AI检测",
   "AIGC降重", "去除AI痕迹", "文本改写", "论文降重", "知网检测", "维普检测", "AI写作检测",
   "让文字更自然", "detect AI text", "humanize text", "make text human-like",
-  "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写", "写一篇"
+  "去ai化", "改成人话", "去机器味", "长文本改写", "小说改写", "写一篇",
+  "claudish", "claudish to english", "去水印", "watermark remover", "remove watermark"
 allowed-tools:
   - Read
   - Write
@@ -21,16 +26,19 @@ allowed-tools:
 
 # Humanize Chinese AI Text v6
 
-一整套中文去 AI 腔流水线。装完直接用：你（agent）负责 ①②④，Python 脚本负责 ③。
+一整套中文去 AI 腔流水线，外加英文和水印两段。装完直接用：你（agent）负责 ①②④⑥，Python 脚本负责 ③⑤。
 
 | 流程 | 什么时候 | 怎么做 |
 |---|---|---|
 | **① 生成即去 AI** | 用户让你**写**中文时 | 按下方「流程 ①：写作指南」落笔，初稿就不带 AI 腔 |
 | **② 复查改写** | 拿到初稿（自己写的或用户给的）| 按下方「流程 ②：改写清单」定点过一遍，只动踩线的句子 |
 | **③ 词语替换** | ② 完成后 | `./humanize replace 稿.txt -o 出稿.txt --compare` —— 自动识别文体路由词表，离线 |
-| **④ 纠错顺句** | ③ 完成后 | 按下方「流程 ④：纠错清单」修错词、病句、标点，拗口处**轻手**顺一顺，其余不动 |
+| **④ Claude 腔转英文** | 稿子是**英文**、带 Claude 助手腔 | 读 `skills/declaude-en/SKILL.md` 照做，规则来自 gvzdv/claudish-to-english |
+| **⑤ 去水印** | 要清文本里的 AI 水印 | `./humanize watermark inspect/clean/survive`，边界见「流程 ⑤」 |
+| **⑥ 纠错顺句** | ③ 完成后 | 按下方「流程 ⑥：纠错清单」修错词、病句、标点，拗口处**轻手**顺一顺，其余不动 |
 
-四个流程**顺序执行**。人味在 ① 产生，② 只能修不能补，③ 是机械替换，④ 纠错顺句、动作最轻。
+中文主线是 ①→②→③→⑥，**顺序执行**；④ 是英文稿的分支，⑤ 独立，需要时随时跑。
+人味在 ① 产生，② 只能修不能补，③ 是机械替换，⑥ 纠错顺句、动作最轻。
 为什么是这个顺序：实测从零写能把句长节奏做进人类区间（变异系数 0.62 vs 人类 0.52），
 而事后改写只能到 0.31 —— 节奏补不回来，必须落笔时就有。
 
@@ -51,7 +59,22 @@ allowed-tools:
 ./humanize academic 论文.txt -o 改后.txt --compare    # 学术降重
 ./humanize style 文本.txt --style xiaohongshu        # 风格转换
 ./humanize compare 文本.txt -a                       # 前后对比
+
+# 水印（两层是两回事，见下方说明）
+./humanize watermark inspect 稿子.txt                # 扫零宽字符/双向控制符/汉字同形替身
+./humanize watermark clean 稿子.txt -o 干净.txt       # 清掉，全角标点和首行缩进原样保留
+./humanize watermark survive 原文.txt 改写后.txt      # 采样水印还剩多少
 ```
+
+**水印那两层别混。** 看得见的载体（零宽字符、康熙部首冒充汉字之类）能删干净也能验证，
+`inspect` 完 `clean` 完再 `inspect` 一遍就是证明。Claude 从 2026-08-02 起用的是另一层：
+拿密钥和前 4 个字算哈希去偏置采样，信号在选词里，本地删不掉也证明不了删掉了。
+`survive` 报的是能测的那部分 —— 原文的 5 字计分窗口在改写后还剩多少个原封不动。
+
+实测本仓库自带的学术样本（288 字）：`replace` 剩 73%，`academic` 剩 54%，
+`style` 剩 44%，`rewrite --llm` 剩 42%。**没有一档够。**
+真要去掉只有一条路：`write`，拿原文当素材重新写。跟用户说这件事的时候要说实话，
+不要说「已经清干净了」——谁都没法验证这句。
 
 **离线那档很保守**：只移动标点，去掉标点后前后文字必须一模一样，程序每次都校验。
 找不到能安全断开的位置时它会直接说「没有可以安全修改的地方」并原样输出 ——
@@ -118,18 +141,25 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 | `--cilin` | 启用 CiLin 同义词扩展（humanize，38873 词，含碰撞 blacklist） |
 | `--no-humanize` | style 转换前不先去 AI 词 |
 | `--rule-only` | detect 只用规则层（跳 LR 融合） |
+| `--fullwidth-latin` | 全角拉丁字母改半角（watermark clean，默认不动）|
+| `--keep-bidi` | 保留双向控制符（watermark clean，文里真夹了阿拉伯语时用）|
 
-### 工作流（三流程版）
+### 工作流（中文主线）
 
 ```bash
 # ① 写：按「流程 ①：写作指南」产出 draft.txt（agent 自己完成，无命令）
 # ② 改：按「流程 ②：改写清单」定点过一遍，存 revised.txt（agent 自己完成）
 # ③ 词表替换：
 ./humanize replace revised.txt -o step3.txt --compare
-# ④ 纠错（agent 按「流程 ④：纠错清单」自己完成；走 API 也可以: rewrite --llm 已含 ④）
+# ⑥ 纠错（agent 按「流程 ⑥：纠错清单」自己完成；走 API 也可以: rewrite --llm 已含 ⑥）
 # 可选：检测 / 转风格
 ./humanize detect final.txt -v
 ./humanize style final.txt --style zhihu -o styled.txt
+
+# ④ Claude 腔英文 → 平实英文：agent 读 skills/declaude-en/SKILL.md 直接改，无命令
+# ⑤ 去水印（独立，随时可跑）：
+./humanize watermark inspect 稿子.txt
+./humanize watermark clean 稿子.txt -o 干净.txt
 ```
 
 ### HC3-Chinese 基准测试
@@ -296,7 +326,32 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 - **打破结构均匀度：**
   调整段落长度，避免每段都一样。合并过短的段落，拆分过长的。
 
-### 流程 ④：纠错清单 —— 修错误、顺拗口，动作要轻
+## 流程 ④：Claude 腔英文 → 平实英文
+
+稿子是**英文**、带着 Claude 助手腔（Claudish）时，读 `skills/declaude-en/SKILL.md` 照做。
+要领：日常词、短句子；事实、名字、数字、文件路径一个不动；代码块不碰；只输出改写后的正文。
+这段是英文稿的分支，中文稿不走。规则提炼自
+[gvzdv/claudish-to-english](https://github.com/gvzdv/claudish-to-english)（2.4k star）的内置改写
+prompt —— 那个仓库本身是个 Claude Code 显示插件（把助手消息实时改写成平实英文显示），
+我们借的是它的改写规则，由 agent 直接执行，不装插件。
+
+## 流程 ⑤：去水印
+
+两层水印是两回事（详见上方 CLI 说明）：
+
+- **看得见的载体**（零宽字符、双向控制符、汉字同形替身）：`./humanize watermark inspect` 扫、
+  `clean` 清，清完再 `inspect` 一遍验证。这层能删干净。
+- **统计水印**（密钥 + 前文哈希偏置采样，信号在选词里）：本地删不掉，也证明不了删掉了。
+  `survive` 报的是能测的那部分。真要去掉只有一条路：`write` 拿原文当素材重写。
+  跟用户说这件事要说实话，不说「已经清干净了」。
+
+外部参照：[guillaumemeyer/watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover)
+（1.9w star，小红书「Claude 水印被破解」那帖说的就是它）。它比我们多两块：多厂商统计水印
+（Gemini SynthID-Text、OpenAI 溯源、开源绿名单/Aaronson 系）的改写式去除，和文件级溯源元数据
+清理（C2PA / EXIF / XMP，覆盖 PNG/JPEG/PDF/DOCX/MP4 等）。文本里的零宽字符用自家
+`watermark clean` 就够；用户要清文件元数据或对付多厂商统计水印时，指向那个仓库。
+
+## 流程 ⑥：纠错清单 —— 修错误、顺拗口，动作要轻
 
 ③ 跑完后把稿子再读一遍，修四类：错词/错别字（的地得、搭配错误）、
 真病句（成分残缺、前后不接 —— 最小修复，改到通顺就停）、
@@ -304,12 +359,12 @@ python scripts/academic_cn.py paper.txt -o clean.txt --quick       # 快速模�
 拗口/语义不畅/用词不准（读出声会磕绊的，换一两个词、微调一处语序，好读即可）。
 **风格平淡不是错误；信息不许增删；句序段落不许动；本来就通顺的句子不碰。**
 判断口诀：错误要修；拗口要顺；通顺的再「可以更好」也不动。
-完整版见 `skills/proofread-cn/SKILL.md`。实测参考：四份产出跑 ④，
+完整版见 `skills/proofread-cn/SKILL.md`。实测参考：四份产出跑 ⑥，
 两份零错误逐字原样返回，两份各修若干处标点和一处缺字病句，检测分不变。
 
 ### 改完自查 —— 验的是通顺，不是分数
 
-四条过完，跑流程 ③ 收尾：
+中文主线四段（①②③⑥）过完，跑流程 ③ 收尾：
 
 ```bash
 ./humanize replace 稿.txt -o 出稿.txt --compare

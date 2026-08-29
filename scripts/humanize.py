@@ -7,6 +7,7 @@ Usage:
   humanize academic <file> [options]    Academic paper AIGC 降重
   humanize style    <file> --style S    8 种写作风格转换
   humanize compare  <file> [options]    改写前后对比
+  humanize watermark <cmd> <file>       水印：可见层清理 + 采样水印残留量估计
   humanize doctor                       Check local data asset status
 
   humanize --list                       List available subcommands
@@ -28,12 +29,13 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SUBCOMMANDS = {
     'detect':   ('detect_cn.py',   'AI 痕迹检测 (0-100)'),
-    'rewrite':  ('rewrite_cn.py',  '去 AI 腔改写（v6 四段流水线；--legacy 回到 v5）'),
+    'rewrite':  ('rewrite_cn.py',  '去 AI 腔改写（v6 流水线；--legacy 回到 v5）'),
     'write':    ('rewrite_cn.py',  '按写作要求从零写一篇不带 AI 腔的中文'),
     'replace':  ('replace_cn.py',  '按文体路由的词语替换（离线，skill 第 ③ 段）'),
     'academic': ('academic_cn.py', '学术论文 AIGC 降重（11 维度）'),
     'style':    ('style_cn.py',    '8 种风格转换（含小说/小红书/知乎/微博等）'),
     'compare':  ('compare_cn.py',  '改写前后对比'),
+    'watermark': ('watermark_cn.py', '水印：清可见层载体 / 量采样水印残留'),
     'doctor':   ('check_assets.py', '本地数据资产状态检查'),
 }
 
@@ -45,6 +47,8 @@ ALIASES = {
     'paper':    'academic',
     'detct':    'detect',
     'cmp':      'compare',
+    'wm':       'watermark',
+    '水印':      'watermark',
 }
 
 USAGE = """humanize — Chinese AI-text humanization toolkit
@@ -54,12 +58,13 @@ Usage:
 
 Subcommands:
   detect     AI 痕迹检测 (0-100)
-  rewrite    去 AI 腔改写（v6 三段流水线；--legacy 回到 v5 旧改写器）
+  rewrite    去 AI 腔改写（v6 流水线；--legacy 回到 v5 旧改写器）
   write      按写作要求从零写一篇不带 AI 腔的中文
   replace    按文体路由的词语替换（离线，skill 第 ③ 段）
   academic   学术论文 AIGC 降重（11 维度）
   style      8 种风格转换（含小说/小红书/知乎/微博等）
   compare    改写前后对比
+  watermark  水印处理（inspect / clean / survive）
   doctor     本地数据资产状态检查
 
 Examples:
@@ -71,6 +76,9 @@ Examples:
   humanize academic 论文.txt -o 改后.txt --compare
   humanize style text.txt --style xiaohongshu -o xhs.txt
   humanize compare text.txt -a
+  humanize watermark inspect 稿子.txt                  # 看有没有零宽字符、同形替身
+  humanize watermark clean 稿子.txt -o 清理后.txt       # 清掉，中文排版原样保留
+  humanize watermark survive 原文.txt 改写后.txt        # 采样水印还剩多少
   humanize doctor
 
 Per-subcommand help:
